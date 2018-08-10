@@ -1,15 +1,14 @@
-# Build CopperheadOS in your Jenkins instance
+# Build RattlesnakeOS in your Jenkins instance
 
-This is a configuration for Jenkins that will build CopperheadOS (AOSP-based
-highly-secure Android-like distribution) images for the Pixel XL — and,
-with a bit of tweaking, the other Google Nexus and Pixel phones —
-based on the CopperheadOS release schedule, complete with fully compliant
-secure boot and anti-theft protection.
+This is a Jenkinsfile and additional code that will build RattlesnakeOS
+(AOSP-based Android-like distribution) images for the Pixel XL, Pixel XL 2,
+and other Google phones.  This build is based on the RattlesnakeOS release
+schedule, complete with fully compliant secure boot and anti-theft protection.
 
-This build recipe is based on [the official CopperheadOS build instructions](https://copperhead.co/android/docs/building).
-In addition to that, this executable recipe will automatically
-rekey F-Droid so F-Droid will have the ability to install applications
-as a trusted app store on your phone.  Quite excellent!
+This build recipe is based on [the RattlesnakeOS build stack](https://github.com/dan-v/rattlesnakeos-stack/).
+This recipe mocks out the Amazon AWS aspects of the build process
+and provides compatible replacements that will provide equivalent
+functionality (with only minor effort on your part).
 
 This build recipe will also build periodically.  If a successful build
 has taken place in the past, the pipeline will exit early with a
@@ -21,64 +20,71 @@ what decides whether a build continues or not.
 
 ## How to use it
 
-Install the Jenkins Pipeline plugin on your Jenkins instance.
+### Jenkins build slave configuration
 
-Copy the directory containing this file, exactly as-is, into the Jenkins
-`jobs` folder.  For example, if your Jenkins `jobs` folder path is
-`/var/lib/jenkins/jobs`, then you'd copy this folder so that the copy
-ends up at `/var/lib/jenkins/jobs/copperheados-build`.  If you'd like,
-rename it afterwards, so it isn't named `copperheados-build`.
+Ensure you have a Debian 9-based Jenkins build slave configured and
+working in your Jenkins master.
 
-### Configuration of the master
+Ensure your build slave with 16 GB RAM and 200 GB disk space available.
+Give that build slave the label `android`.
 
-Inside the newly-created directory, make a copy of the the `config.xml.j2`
-file and name it `config.xml`.
-
-Open the `config.xml` file in your favorite text editor and make the
-following changes:
-
-1. Find the `PRODUCT_NAME` parameter under `<parameterDefinitions>`,
-   then delete the line that says `{{ android_devices[0] | je }}` from
-   the list of parameters.  Now sort the list of parameters so that the
-   device you plan to build for most often is at the top.
-2. Change the values of the `GIT_USER_NAME` and `GIT_USER_EMAIL`
-   parameters to choices of your own.
-3. Change the values of `RELEASE_UPLOAD_ADDRESS` and
-   `RELEASE_DOWNLOAD_ADDRESS` to suit your updates publishing needs.  Note
-   that _you are responsible_ for making sure your Jenkins master node
-   can SSH into the host named by `RELEASE_UPLOAD_ADDRESS` and can write
-   to the folder named by that variable.  See the documentation adjacent
-   to the variables themselves for more information.
-4. Tune the rest of the parameters to your own liking, in particular the
-   parameter for `NUM_CORES` to speed up the build if your build node
-   has a lot of RAM and many cores.
-5. In the `<triggers>` section, adjust the trigger times you'd like the
-   build to run on.
+The `sudo` configuration needs to be adjusted in your build slave so that
+the slave process can run commands as root via `sudo`.  The *Preparation*
+stage of the build process will attempt to install several necessary packages
+at the very beginning, by using `apt-get` with `sudo`.  This is bound to fail
+on your system, unless you first install the packages in question.
+In case of failure, run the build and see the log of the *Preparation*
+stage -- then install the packages mentioned by the log.
 
 ### Signing keys generation (one-time-process)
 
-Now note the product name stored in the `PRODUCT_NAME` variable of the
-`config.xml` file.  We'll use this shortly.
+Now note the device you'll use (e.g., `marlin`).  We'll use this shortly.
 
-Create the keys as per
-[the official CopperheadOS build instructions](https://copperhead.co/android/docs/building)
- — relevant snippet for one product name quoted here:
+Create the keys now, using a secure machine that won't leak your keys.
 
---------------------------------------------------------------------------
+#### Android Verified Boot 1.0 (`marlin` generation devices)
 
-To generate keys for `marlin` (you should use unique keys per
-device variant / product name):
+```
+mkdir -p keys/marlin
+cd keys/marlin
+../../development/tools/make_key releasekey '/C=US/ST=California/L=San Francisco/O=Your Business/OU=Your Business/CN=Your Business/emailAddress=webmaster@yourbusiness.com'
+../../development/tools/make_key platform '/C=US/ST=California/L=San Francisco/O=Your Business/OU=Your Business/CN=Your Business/emailAddress=webmaster@yourbusiness.com'
+../../development/tools/make_key shared '/C=US/ST=California/L=San Francisco/O=Your Business/OU=Your Business/CN=Your Business/emailAddress=webmaster@yourbusiness.com'
+../../development/tools/make_key media '/C=US/ST=California/L=San Francisco/O=Your Business/OU=Your Business/CN=Your Business/emailAddress=webmaster@yourbusiness.com'
+../../development/tools/make_key verity '/C=US/ST=California/L=San Francisco/O=Your Business/OU=Your Business/CN=Your Business/emailAddress=webmaster@yourbusiness.com'
+cd ../..
+```
 
-    mkdir keys/marlin
-    cd keys/marlin
-    ../../development/tools/make_key releasekey '/C=CA/ST=Ontario/L=Toronto/O=CopperheadOS/OU=CopperheadOS/CN=CopperheadOS/emailAddress=copperheados@copperhead.co'
-    ../../development/tools/make_key platform '/C=CA/ST=Ontario/L=Toronto/O=CopperheadOS/OU=CopperheadOS/CN=CopperheadOS/emailAddress=copperheados@copperhead.co'
-    ../../development/tools/make_key shared '/C=CA/ST=Ontario/L=Toronto/O=CopperheadOS/OU=CopperheadOS/CN=CopperheadOS/emailAddress=copperheados@copperhead.co'
-    ../../development/tools/make_key media '/C=CA/ST=Ontario/L=Toronto/O=CopperheadOS/OU=CopperheadOS/CN=CopperheadOS/emailAddress=copperheados@copperhead.co'
-    ../../development/tools/make_key verity '/C=CA/ST=Ontario/L=Toronto/O=CopperheadOS/OU=CopperheadOS/CN=CopperheadOS/emailAddress=copperheados@copperhead.co'
-    cd ../..
+#### Android Verified Boot 2.0 (`taimen` generation devices)
 
---------------------------------------------------------------------------
+```
+mkdir -p keys/taimen
+cd keys/taimen
+../../development/tools/make_key releasekey '/C=US/ST=California/L=San Francisco/O=Your Business/OU=Your Business/CN=Your Business/emailAddress=webmaster@yourbusiness.com'
+../../development/tools/make_key platform '/C=US/ST=California/L=San Francisco/O=Your Business/OU=Your Business/CN=Your Business/emailAddress=webmaster@yourbusiness.com'
+../../development/tools/make_key shared '/C=US/ST=California/L=San Francisco/O=Your Business/OU=Your Business/CN=Your Business/emailAddress=webmaster@yourbusiness.com'
+../../development/tools/make_key media '/C=US/ST=California/L=San Francisco/O=Your Business/OU=Your Business/CN=Your Business/emailAddress=webmaster@yourbusiness.com'
+openssl genrsa -out avb.pem 2048
+../../external/avb/avbtool extract_public_key --key avb.pem --output avb_pkmd.bin
+cd ../..
+```
+
+### Jenkins master configuration (one-time process)
+
+Add the shared Groovy library https://github.com/Rudd-O/shared-jenkins-libraries
+to your Jenkins libraries configuration.
+
+Create a Jenkins multibranch pipeline, pointed at this repository.
+
+This will dispatch a build immediately.  Expect the build to fail, or cancel it
+if you so desire.
+
+In the Jenkins job folder (`$JENKINS_HOME/jobs/<your job name>`), create
+a file named `parameters.groovy`, and supply default values in a Groovy
+dictionary for which device you want to build (as in
+`["DEVICE": "marlin"]`).
+
+### Signing keys deployment (one-time process)
 
 Place those keys in the `keys/<PRODUCT_NAME>` folder under the job directory
 you created below the Jenkins `jobs` folder.  You must create one set of
@@ -87,33 +93,58 @@ able to create new flashable builds without unlocking and wiping your device.
 
 Ensure the keys under this job directory are readable only by the Jenkins user.
 
-### Build slave configuration
+### Release server (optional, one-time process)
 
-Ensure your Jenkins instance has at least one build slave with 16 GB RAM
-and 200 GB disk space available.  Give that build slave the label `copperhead`.
-Alternatively, change the `node(copperhead)` snippet in `config.xml`
-to run it on any slave (see the Jenkins Pipeline reference documentation).
+Set up a Web server somewhere (and probably also add SSL certificates
+to it).
 
-The `sudo` configuration needs to be adjusted in your build slave so that
-the program `$WORKSPACE/bind-mount-dirs-android` (with its full path) can
-be executed via `sudo`.  The program in question will be copied at the start
-of the build from the master into the build slave, and it is used to wrap
-calls to `./download-factory-android`, `./build-android` and
-`./release-android` during various stages of the build.  This is needed to
-to mount the workspace directory into a temporary directory without spaces
-(otherwise the Android build fails), as well as mount a subdirectory of
-the workspace onto `/tmp` for larger disk space (useful in most systems
-where `/tmp` is a `tmpfs` with limited space and causes the build to break).
+Ensure that the Jenkins master can SSH into the Web server and deploy files
+on the root directory of the Web server, such that the Jenkins master can
+publish the released files.  This will involve adding an UNIX user, giving
+it permission to write to the root of the Web server, and setting up
+SSH pubkey authentication so that the Jenkins master can successfully `rsync`
+files into the root of the Web server via SSH.
 
-Additionally, the *Preparation* stage of the build process will attempt to
-install several necessary packages at the very beginning, by using `dnf`
-with `sudo`.  This is bound to fail on your system, unless you first
-install the packages in question.  In case of failure, run the build and
-see the log of the *Preparation* stage -- then install the packages
-mentioned by the log.
+Test this part by hand.  Try pushing files via `rsync` as the Jenkins master,
+and seeing if the Web server shows them and allows you to download them.
+
+Now configure the mandatory defaults on your build pipeline:
+
+In the Jenkins job folder (`$JENKINS_HOME/jobs/<your job name>`), create
+a file named `parameters.groovy`, and configure two parameters in the
+attendant Groovy dictionary:
+
+1. `RELEASE_DOWNLOAD_ADDRESS`: this is your Web server URL that
+   will show the published files to your phone (for the updater to work).
+   Mind the slash at the end.
+2. `RELEASE_UPLOAD_ADDRESS`: this is the address where the results
+   will be published, in SSH address format
+   `user@host:/path/to/root/of/webserver`.
+
+### Rescan pipeline (one-time process)
+
+Have Jenkins rescan your multibranch job so that the defaults are picked up.
 
 ### Finishing setup
 
-Restart or reload your Jenkins instance.
+You're now ready to go.
 
-You're now ready to go.  Build!
+Verify that your defaults in `parameters.groovy`
+got picked up by glancing at the *Build with parameters* page of your
+build.
+
+Build your first image.
+
+Flash the built image to your phone using the standard `fastboot`
+flashing procedure documented everywhere.  You'll find it
+in the artifacts page of the build (and, if you so chose, your
+release Web server).
+
+## To-do
+
+* Ensure that Chromium patched with bromite is stored with
+  a different name (and the marker file as well) in "S3"
+  than Chromium unpatched with bromite.  Otherwise one
+  build will have a Chromium from a prior build that
+  does not necessarily conform to the Chromium build
+  parameters of this one build.
