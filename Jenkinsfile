@@ -1,5 +1,5 @@
 def RELEASE_DOWNLOAD_ADDRESS = funcs.loadParameter('parameters.groovy', 'RELEASE_DOWNLOAD_ADDRESS', 'http://example.com/')
-def PATCH_CHROMIUM = funcs.loadParameter('parameters.groovy', 'PATCH_CHROMIUM', false)
+def SKIP_CHROMIUM_BUILD = funcs.loadParameter('parameters.groovy', 'SKIP_CHROMIUM_BUILD', false)
 def RELEASE_UPLOAD_ADDRESS = funcs.loadParameter('parameters.groovy', 'RELEASE_UPLOAD_ADDRESS', '')
 def ALL_DEVICES = ["marlin (Pixel XL)", "angler (Nexus 6P)", "bullhead (Nexus 5X)", "sailfish (Pixel)", "taimen (Pixel 2 XL)", "walleye (Pixel 2)", "hikey (HiKey)", "hikey960 (HiKey 960)"]
 def DEVICE = funcs.loadParameter('parameters.groovy', 'DEVICE', "")
@@ -69,7 +69,7 @@ pipeline {
 		choice choices: ["user", "userdebug"], description: 'The type of build you want.  Userdebug build types allow obtaining root via ADB, and enable ADB by default on boot.  See https://source.android.com/setup/build/building for more information.', name: 'BUILD_TYPE'
 		string defaultValue: RELEASE_DOWNLOAD_ADDRESS, description: 'The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  It is mandatory.', name: 'RELEASE_DOWNLOAD_ADDRESS', trim: true
 		string defaultValue: RELEASE_UPLOAD_ADDRESS, description: 'The SSH address, in user@host:/path/to/folder format, to rsync artifacts to, in order to publish them.  Leave empty to skip publishing.', name: 'RELEASE_UPLOAD_ADDRESS', trim: true
-		booleanParam defaultValue: PATCH_CHROMIUM, description: 'Patch Chromium with Bromite.', name: 'PATCH_CHROMIUM'
+		booleanParam defaultValue: SKIP_CHROMIUM_BUILD, description: 'Skip Chromium build if a build already exists.', name: 'SKIP_CHROMIUM_BUILD'
 		booleanParam defaultValue: false, description: 'Force build even if no new versions exist of components.', name: 'FORCE_BUILD'
 		booleanParam defaultValue: false, description: 'Clean workspace completely before starting.  This will also force a build as a side effect.', name: 'CLEAN_WORKSPACE'
 	}
@@ -112,7 +112,7 @@ pipeline {
 					steps {
 						checkout([
 							$class: 'GitSCM',
-							branches: [[name: '*/master']],
+							branches: [[name: '*/9.0']],
 							doGenerateSubmoduleConfigurations: false,
 							extensions: [[
 								$class: 'RelativeTargetDirectory',
@@ -137,6 +137,12 @@ pipeline {
 						dir("../../../keys/") {
 							stash includes: '**', name: 'keys'
 						}
+						sh '''
+							set -ex
+							mv rattlesnakeos-stack/templates/build_template.go .
+							rm -f rattlesnakeos-stack/templates/*
+							mv build_template.go rattlesnakeos-stack/templates/
+						'''
 						stash includes: 'rattlesnakeos-stack/**', name: 'stack'
 						dir("src") {
 							stash includes: '**', name: 'code'
@@ -170,6 +176,7 @@ pipeline {
 						dir("s3/rattlesnakeos-keys") {
 							unstash 'keys'
 						}
+						sh 'rm -rf rattlesnakeos-stack'
 						unstash 'stack'
 						dir("rattlesnakeos-stack") {
 							unstash 'code'
@@ -220,7 +227,7 @@ pipeline {
 									go build main.go
 									./main -output stack-builder \\
 										-force-build="${params.FORCE_BUILD}" \\
-										-patch-chromium="${params.PATCH_CHROMIUM}" \\
+										-skip-chromium-build="${params.SKIP_CHROMIUM_BUILD}" \\
 										-release-url="${params.RELEASE_DOWNLOAD_ADDRESS}" \\
 										-build-type="${params.BUILD_TYPE}"
 									cat 'stack-builder' | nl -ha -ba -fa | sed 's/^/stack-builder: /'

@@ -6,31 +6,55 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strings"
 	"text/template"
 )
 
 var output = flag.String("output", "stack-builder", "Output file for stack script.")
 var forceBuild = flag.Bool("force-build", false, "Force build even if no new versions exist of components.")
-var patchChromium = flag.Bool("patch-chromium", true, "Patch Chromium with Bromite.")
+var skipChromiumBuild = flag.Bool("skip-chromium-build", false, "Skip Chromium build if Chromium was already built.")
 var releaseUrl = flag.String("release-url", "http://example.com/", "Release URL.")
 var buildType = flag.String("build-type", "user", "Which build type to use.")
 
 type Data struct {
-	Region          string
-	Version         string
-	PreventShutdown string
-	Force           string
-	PatchChromium   string
-	Name            string
+	Region            string
+	Version           string
+	PreventShutdown   string
+	Force             string
+	SkipChromiumBuild string
+	Name              string
+}
+
+func replace(original string, text string, substitution string, numReplacements int) (string, error) {
+	new_ := strings.Replace(original, text, substitution, numReplacements)
+	if original == new_ {
+		return "", fmt.Errorf("The replacement of %s for %s produced no changes", text, substitution)
+	}
+	return new_, nil
 }
 
 func main() {
 	flag.Parse()
-	txt := templates.ShellScriptTemplate
-	txt = strings.Replace(txt, "<%", "{{", -1)
-	txt = strings.Replace(txt, "%>", "}}", -1)
-	txt = strings.Replace(txt,
+	txt := templates.BuildTemplate
+	var err error
+	txt, err = replace(txt, "<%", "{{", -1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(txt, "%>", "}}", -1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(txt, `$(curl -s http://169.254.169.254/latest/meta-data/instance-type)`, "none", -1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(txt, `$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | awk -F\" '/region/ {print $4}')`, "none", -1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(txt,
 		`wget ${ANDROID_SDK_URL} -O sdk-tools.zip
   unzip sdk-tools.zip`,
 		`if [ ! -f sdk-tools.zip ] ; then
@@ -43,23 +67,32 @@ fi
 	unzip -o sdk-tools.zip
   }`,
 		-1)
-	txt = strings.Replace(txt,
-		"git clone --branch ${CHROMIUM_REVISION} $BROMITE_URL $HOME/bromite",
-		`if [ -d $HOME/bromite ] ; then
-    pushd $HOME/bromite
-    git fetch origin
-    git checkout -f ${CHROMIUM_REVISION}
-    popd
-else
-    git clone --branch ${CHROMIUM_REVISION} $BROMITE_URL $HOME/bromite
-fi`,
-		-1)
-	if *buildType != "user" {
-		txt = strings.Replace(txt, `"release aosp_${DEVICE} user"`, fmt.Sprintf(`"release aosp_${DEVICE} %s"`, *buildType), -1)
+	if err != nil {
+		log.Fatalf("%s", err)
 	}
-	txt = strings.Replace(txt, "Stack Version: %s %s\\n  ", "", -1)
-	txt = strings.Replace(txt, `"${STACK_VERSION}" "${STACK_UPDATE_MESSAGE}" `, "", -1)
-	txt = strings.Replace(
+	if *buildType != "user" {
+		txt, err = replace(txt, `"BUILD_TYPE="user"`, fmt.Sprintf(`BUILD_TYPE="%s"`, *buildType), -1)
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+	}
+	txt, err = replace(txt, "Stack Name: %s\\n  Stack Version: %s %s\\n  Stack Region: %s\\n  ", "", -1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(txt, `"${STACK_NAME}" "${STACK_VERSION}" "${STACK_UPDATE_MESSAGE}" "${REGION}" `, "", -1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(txt, "Instance Type: %s\\n  Instance Region: %s\\n  ", "", -1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(txt, `"${INSTANCE_TYPE}" "${INSTANCE_REGION}" `, "", -1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(
 		txt,
 		"yes | gclient sync --with_branch_heads --jobs 32 -RDf",
 		`for gitdir in $( find -name .git ) ; do
@@ -69,8 +102,14 @@ fi`,
   done
   yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
 		-1)
-	txt = strings.Replace(txt, "linux-image-$(uname --kernel-release)", "$(apt-cache search linux-image-* | awk ' { print $1 } ' | sort | egrep -v -- '(-dbg|-rt|-pae)' | grep ^linux-image-[0-9][.] | tail -1)", -1)
-	txt = strings.Replace(
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(txt, "linux-image-$(uname --kernel-release)", "$(apt-cache search linux-image-* | awk ' { print $1 } ' | sort | egrep -v -- '(-dbg|-rt|-pae)' | grep ^linux-image-[0-9][.] | tail -1)", -1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(
 		txt,
 		`git clone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"`,
 		`if test -d "${MARLIN_KERNEL_SOURCE_DIR}"/.git ; then
@@ -82,48 +121,66 @@ fi`,
 	git clone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"
   fi`,
 		-1)
-	txt = strings.Replace(
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(
 		txt,
 		`"${BUILD_DIR}/script/release.sh" "$DEVICE"`,
 		`bash -x "${BUILD_DIR}/script/release.sh" "$DEVICE"`,
 		-1,
 	)
-	txt = strings.Replace(
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(
 		txt,
-		`"$(wget -O - "${RELEASE_URL}/${DEVICE}-stable")"`,
+		`"$(wget -O - "${RELEASE_URL}/${RELEASE_CHANNEL}")"`,
 		`"$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/${RELEASE_CHANNEL}" -)"`,
 		-1,
 	)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(
+		txt,
+		`fetch --nohooks android`,
+		`test -f .gclient && gclient sync -n || fetch --nohooks android`,
+		-1,
+	)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
 	t, err := template.New("stack").Parse(txt)
 	if err != nil {
-		panic(err)
+		log.Fatalf("%s", err)
 	}
 
 	forceBuildStr := "false"
 	if *forceBuild {
 		forceBuildStr = "true"
 	}
-	patchChromiumStr := "false"
-	if *patchChromium {
-		patchChromiumStr = "true"
+	skipChromiumBuildStr := "false"
+	if *skipChromiumBuild {
+		skipChromiumBuildStr = "true"
 	}
 	data := Data{
-		Force:         forceBuildStr,
-		PatchChromium: patchChromiumStr,
-		Name:          "rattlesnakeos",
-		Region:        "none",
+		Force:             forceBuildStr,
+		SkipChromiumBuild: skipChromiumBuildStr,
+		Name:              "rattlesnakeos",
+		Region:            "none",
 	}
 
 	var tpl bytes.Buffer
 	err = t.Execute(&tpl, data)
 	if err != nil {
-		panic(err)
+		log.Fatalf("%s", err)
 	}
 	s := tpl.String()
 	if strings.Contains(s, "<%") {
 		s = strings.Split(tpl.String(), "<%")[0]
 		s = s + "<%" + strings.Split(tpl.String(), "<%")[1]
-		panic(fmt.Sprintf("The resultant string did not render properly.\n\n %s", s))
+		log.Fatalf("The resultant string did not render properly.\n\n %s", s)
 	}
 	s = strings.Split(s, "\nfull_run\n")[0]
 	s = s + `
@@ -268,6 +325,6 @@ fi
 	s = s + "\nfull_run\n"
 	err = ioutil.WriteFile(*output, []byte(s), 0755)
 	if err != nil {
-		panic(err)
+		log.Fatalf("%s", err)
 	}
 }
