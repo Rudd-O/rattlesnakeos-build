@@ -94,20 +94,6 @@ fi
 	}
 	txt, err = replace(
 		txt,
-		"yes | gclient sync --with_branch_heads --jobs 32 -RDf",
-		`for gitdir in $( find -name .git ) ; do
-	pushd $gitdir/.. || continue
-	git clean -dff || { popd ; return $? ; }
-	git reset --hard || { popd ; return $? ; }
-	popd || return $?
-  done
-  yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
-		-1)
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-	txt, err = replace(
-		txt,
 		`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true`,
 		`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true
   for gitdir in $(find -name .git) ; do
@@ -124,9 +110,23 @@ fi
 	}
 	txt, err = replace(
 		txt,
-		`rm -rf $HOME/chromium`,
-		``,
+		`test -f .gclient || fetch --nohooks android`,
+		-1,
+	)
+	txt, err = replace(
+		txt,
+		"yes | gclient sync --with_branch_heads --jobs 32 -RDf",
+		`for gitdir in $( find -name .git ) ; do
+	pushd $gitdir/.. || continue
+	git clean -dff || { popd ; return $? ; }
+	git reset --hard || { popd ; return $? ; }
+	popd || return $?
+  done
+  yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
 		-1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -134,6 +134,14 @@ fi
 		txt,
 		`out/Default`,
 		`"$HOME"/chromium-out`,
+		-1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(
+		txt,
+		`rm -rf $HOME/chromium`,
+		``,
 		-1)
 	if err != nil {
 		log.Fatalf("%s", err)
@@ -170,15 +178,6 @@ fi
 		txt,
 		`"$(wget -O - "${RELEASE_URL}/${RELEASE_CHANNEL}")"`,
 		`"$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/${RELEASE_CHANNEL}" -)"`,
-		-1,
-	)
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-	txt, err = replace(
-		txt,
-		`fetch --nohooks android`,
-		`test -f .gclient && gclient sync -n || fetch --nohooks android`,
 		-1,
 	)
 	if err != nil {
