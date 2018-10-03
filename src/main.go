@@ -110,6 +110,7 @@ fi
 	}
 	txt, err = replace(
 		txt,
+		`fetch --nohooks android`,
 		`test -f .gclient || fetch --nohooks android`,
 		-1,
 	)
