@@ -283,7 +283,7 @@ pipeline {
 						}
 						stage('check_chromium') {
 							steps {
-								timeout(time: 12, unit: 'HOURS') {
+								timeout(time: 24, unit: 'HOURS') {
 									runStack(currentBuild, true, "check_chromium")
 								}
 							}
@@ -325,7 +325,7 @@ pipeline {
 						}
 						stage('build_aosp') {
 							steps {
-								timeout(time: 8, unit: 'HOURS') {
+								timeout(time: 24, unit: 'HOURS') {
 									runStack(currentBuild, true, "build_aosp")
 								}
 							}
