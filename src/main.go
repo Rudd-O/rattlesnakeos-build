@@ -96,10 +96,10 @@ fi
 		txt,
 		"yes | gclient sync --with_branch_heads --jobs 32 -RDf",
 		`for gitdir in $( find -name .git ) ; do
-	pushd $gitdir/..
-	git clean -dff
-	git reset --hard
-	popd
+	pushd $gitdir/.. || continue
+	git clean -dff || { popd ; return $? ; }
+	git reset --hard || { popd ; return $? ; }
+	popd || return $?
   done
   yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
 		-1)
@@ -111,7 +111,7 @@ fi
 		`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true`,
 		`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true
   for gitdir in $(find -name .git) ; do
-    pushd "$gitdir/.." || return $?
+    pushd "$gitdir/.." || continue
     git status || { popd ; return $? ; }
     git clean -dff || { popd ; return $? ; }
     git reset --hard || { popd ; return $? ; }
