@@ -98,6 +98,7 @@ fi
 		`for gitdir in $( find -name .git ) ; do
 	pushd $gitdir/..
 	git clean -dff
+	git reset --hard
 	popd
   done
   yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
@@ -117,6 +118,14 @@ fi
     popd || return $?
   done
 `,
+		-1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+	txt, err = replace(
+		txt,
+		`rm -rf $HOME/chromium`,
+		``,
 		-1)
 	if err != nil {
 		log.Fatalf("%s", err)
