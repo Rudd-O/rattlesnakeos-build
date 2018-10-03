@@ -130,6 +130,14 @@ fi
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
+	txt, err = replace(
+		txt,
+		`out/Default`,
+		`"$HOME"/chromium-out`,
+		-1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
 	txt, err = replace(txt, "linux-image-$(uname --kernel-release)", "$(apt-cache search linux-image-* | awk ' { print $1 } ' | sort | egrep -v -- '(-dbg|-rt|-pae)' | grep ^linux-image-[0-9][.] | tail -1)", -1)
 	if err != nil {
 		log.Fatalf("%s", err)
