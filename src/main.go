@@ -105,6 +105,22 @@ fi
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
+	txt, err = replace(
+		txt,
+		`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true`,
+		`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true
+  for gitdir in $(find -name .git) ; do
+    pushd "$gitdir/.." || return $?
+    git status || { popd ; return $? ; }
+    git clean -dff || { popd ; return $? ; }
+    git reset --hard || { popd ; return $? ; }
+    popd || return $?
+  done
+`,
+		-1)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
 	txt, err = replace(txt, "linux-image-$(uname --kernel-release)", "$(apt-cache search linux-image-* | awk ' { print $1 } ' | sort | egrep -v -- '(-dbg|-rt|-pae)' | grep ^linux-image-[0-9][.] | tail -1)", -1)
 	if err != nil {
 		log.Fatalf("%s", err)
