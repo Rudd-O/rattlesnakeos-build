@@ -99,6 +99,30 @@ fi
 `,
 			-1,
 		},
+		{
+			`mkdir -p ${BUILD_DIR}/external/chromium/prebuilt/arm64`,
+			``,
+			-1,
+		},
+		{
+			`cp out/Default/apks/MonochromePublic.apk ${BUILD_DIR}/external/chromium/prebuilt/arm64/`,
+			`aws s3 cp out/Default/apks/MonochromePublic.apk "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk"`,
+			-1,
+		},
+		{
+			` aws s3 cp "${BUILD_DIR}/external/chromium/prebuilt/arm64/MonochromePublic.apk" "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk"`,
+			``,
+			-1,
+		},
+		{
+			`# make modifications to default AOSP`,
+			`# make modifications to default AOSP
+  # Since we just git cleaned everything, we will have to re-copy
+  # the MonochromePublic.apk file once again.
+  mkdir -p ${BUILD_DIR}/external/chromium/prebuilt/arm64
+  aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" ${BUILD_DIR}/external/chromium/prebuilt/arm64/`,
+			-1,
+		},
 		{`fetch --nohooks android`, `test -f .gclient || fetch --nohooks android`, -1},
 		{
 			"yes | gclient sync --with_branch_heads --jobs 32 -RDf",
