@@ -73,7 +73,7 @@ fi
 			-1,
 		},
 		{
-			`"BUILD_TYPE="user"`,
+			`BUILD_TYPE="user"`,
 			fmt.Sprintf(`BUILD_TYPE="%s" # replaced`, *buildType),
 			-1,
 		},
