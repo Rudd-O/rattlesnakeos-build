@@ -50,6 +50,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
+	txt, err = replace(
+		txt,
+		`AWS_SNS_ARN=$(aws --region ${REGION} sns list-topics --query 'Topics[0].TopicArn' --output text | cut -d":" -f1,2,3,4,5)":${STACK_NAME}"`,
+		`AWS_SNS_ARN=none`,
+		-1,
+	)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
 	txt, err = replace(txt, `$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | awk -F\" '/region/ {print $4}')`, "none", -1)
 	if err != nil {
 		log.Fatalf("%s", err)
