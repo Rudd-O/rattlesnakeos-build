@@ -122,8 +122,8 @@ fi
 			`git clone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"`,
 			`if test -d "${MARLIN_KERNEL_SOURCE_DIR}"/.git ; then
 	pushd "${MARLIN_KERNEL_SOURCE_DIR}"
-	sed -i 's|url = .*|url = '"${MARLIN_KERNEL_SOURCE_DIR}"'|' .git/config
-	git fetch aosp
+	sed -i 's|url = .*|url = '"${KERNEL_SOURCE_URL}"'|' .git/config
+	git fetch
 	popd
   else
 	git clone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"
