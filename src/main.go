@@ -51,13 +51,10 @@ func main() {
 			`AWS_SNS_ARN=none`,
 			-1,
 		},
-		{
-			`$(curl -s http://169.254.169.254/latest/meta-data/instance-type)`,
-			"none",
-			-1,
-		},
-		{
-			`$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | awk -F\" '/region/ {print $4}')`, "none", -1},
+		{`$(curl -s http://169.254.169.254/latest/meta-data/instance-type)`, "none", -1},
+		{`$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | awk -F\" '/region/ {print $4}')`, "none", -1},
+		{`echo "No build is required, but FORCE_BUILD=true"`, `aws_notify "No build is required, but FORCE_BUILD=true"`, -1},
+		{`echo "New build is required"`, `aws_notify "New build is required"`, -1},
 		{
 			`wget ${ANDROID_SDK_URL} -O sdk-tools.zip
   unzip sdk-tools.zip`,
