@@ -26,12 +26,12 @@ type Data struct {
 	Name              string
 }
 
-func replace(original string, text string, substitution string, numReplacements int) (string, error) {
-	new_ := strings.Replace(original, text, substitution, numReplacements)
-	if original == new_ {
-		return "", fmt.Errorf("The replacement of %s for %s produced no changes", text, substitution)
+func replace(text string, original string, substitution string, numReplacements int) (string, error) {
+	newText := strings.Replace(text, original, substitution, numReplacements)
+	if text == newText {
+		return "", fmt.Errorf("The replacement of %s for %s produced no changes", original, substitution)
 	}
-	return new_, nil
+	return newText, nil
 }
 
 func main() {
@@ -40,7 +40,7 @@ func main() {
 	var err error
 
 	var replacements = []struct {
-		text            string
+		original        string
 		substitution    string
 		numReplacements int
 	}{
@@ -54,11 +54,6 @@ func main() {
 		{
 			`$(curl -s http://169.254.169.254/latest/meta-data/instance-type)`,
 			"none",
-			-1,
-		},
-		{
-			`AWS_SNS_ARN=$(aws --region ${REGION} sns list-topics --query 'Topics[0].TopicArn' --output text | cut -d":" -f1,2,3,4,5)":${STACK_NAME}"`,
-			`AWS_SNS_ARN=none`,
 			-1,
 		},
 		{
@@ -147,8 +142,8 @@ fi
 		},
 	}
 
-	for _, tt := range replacements {
-		if txt, err = replace(txt, tt.text, tt.substitution, tt.numReplacements); err != nil {
+	for _, r := range replacements {
+		if txt, err = replace(txt, r.original, r.substitution, r.numReplacements); err != nil {
 			log.Fatalf("%s", err)
 		}
 	}
