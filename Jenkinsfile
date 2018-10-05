@@ -35,15 +35,18 @@ def runStack(currentBuild, actually_build, stage="") {
 			set -o pipefail
 			ONLY_REPORT=${onlyReport} ionice -c3 bash -x rattlesnakeos-stack/stack-builder "\$DEVICE" 2>&1 | tee android-build.log
 			"""
-			currentBuild.description = sh (
+			def description = sh (
 				script: grepper,
 				returnStdout: true
 			).trim()
+			if (description != "") {
+				currentBuild.description = description
+			}
 		} catch(error) {
 			currentBuild.description = "Failed in ${phase} phase:\n${error}.\n" + sh (
 				script: grepper,
 				returnStdout: true
-			).trim()
+			).trim() + "\n\n" + currentBuild.description
 			throw error
 		}
 	}
