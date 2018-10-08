@@ -16,6 +16,10 @@ var forceBuild = flag.Bool("force-build", false, "Force build even if no new ver
 var skipChromiumBuild = flag.Bool("skip-chromium-build", false, "Skip Chromium build if Chromium was already built.")
 var releaseUrl = flag.String("release-url", "http://example.com/", "Release URL.")
 var buildType = flag.String("build-type", "user", "Which build type to use.")
+var repoPatches = flag.String("repo-patches", "", "An advanced option that allows you to specify a git repo with patches to apply to AOSP build tree. see https://github.com/RattlesnakeOS/community_patches for more details.")
+var repoPrebuilts = flag.String("repo-prebuilts", "", "An advanced option that allows you to specify a git repo with prebuilt APKs. see https://github.com/RattlesnakeOS/example_prebuilts for more details.")
+var hostsFile = flag.String("hosts-file", "", `An advanced option that allows you to specify a replacement /etc/hosts file to enable global dns adblocking (e.g. https://raw.
+githubusercontent.com/StevenBlack/hosts/master/hosts). note: be careful with this, as you 1) won't get any sort of notification on blocking 2) if you need to unblock something you'll have to rebuild the OS`)
 
 type Data struct {
 	Region            string
@@ -24,6 +28,17 @@ type Data struct {
 	Force             string
 	SkipChromiumBuild string
 	Name              string
+	RepoPatches       string
+	RepoPrebuilts     string
+	HostsFile         string
+}
+
+func boolStr(b bool) string {
+	bStr := "false"
+	if b {
+		bStr = "true"
+	}
+	return bStr
 }
 
 func replace(text string, original string, substitution string, numReplacements int) (string, error) {
@@ -53,6 +68,7 @@ func main() {
 		},
 		{`$(curl -s http://169.254.169.254/latest/meta-data/instance-type)`, "none", -1},
 		{`$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | awk -F\" '/region/ {print $4}')`, "none", -1},
+		{`$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)`, "none", -1},
 		{`echo "No build is required, but FORCE_BUILD=true"`, `aws_notify "No build is required, but FORCE_BUILD=true"`, -1},
 		{`echo "New build is required"`, `aws_notify "New build is required"`, -1},
 		{
@@ -81,8 +97,8 @@ fi
 			"",
 			-1,
 		},
-		{"Instance Type: %s\\n  Instance Region: %s\\n  ", "", -1},
-		{`"${INSTANCE_TYPE}" "${INSTANCE_REGION}" `, "", -1},
+		{"Instance Type: %s\\n  Instance Region: %s\\n  Instance IP: %s\\n  ", "", -1},
+		{`"${INSTANCE_TYPE}" "${INSTANCE_REGION}" "${INSTANCE_IP}" `, "", -1},
 		{
 			`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true`,
 			`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true
@@ -169,19 +185,14 @@ fi
 		}
 	}
 
-	forceBuildStr := "false"
-	if *forceBuild {
-		forceBuildStr = "true"
-	}
-	skipChromiumBuildStr := "false"
-	if *skipChromiumBuild {
-		skipChromiumBuildStr = "true"
-	}
 	data := Data{
-		Force:             forceBuildStr,
-		SkipChromiumBuild: skipChromiumBuildStr,
+		Force:             boolStr(*forceBuild),
+		SkipChromiumBuild: boolStr(*skipChromiumBuild),
 		Name:              "rattlesnakeos",
 		Region:            "none",
+		RepoPatches:       *repoPatches,
+		RepoPrebuilts:     *repoPrebuilts,
+		HostsFile:         *hostsFile,
 	}
 
 	t, err := template.New("stack").Parse(txt)

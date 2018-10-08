@@ -1,6 +1,11 @@
 def RELEASE_DOWNLOAD_ADDRESS = funcs.loadParameter('parameters.groovy', 'RELEASE_DOWNLOAD_ADDRESS', 'http://example.com/')
 def SKIP_CHROMIUM_BUILD = funcs.loadParameter('parameters.groovy', 'SKIP_CHROMIUM_BUILD', false)
 def RELEASE_UPLOAD_ADDRESS = funcs.loadParameter('parameters.groovy', 'RELEASE_UPLOAD_ADDRESS', '')
+def REPO_PATCHES = funcs.loadParameter('parameters.groovy', 'REPO_PATCHES', '')
+def REPO_PREBUILTS = funcs.loadParameter('parameters.groovy', 'REPO_PREBUILTS', '')
+def HOSTS_FILE = funcs.loadParameter('parameters.groovy', 'HOSTS_FILE', '')
+
+
 def ALL_DEVICES = ["marlin (Pixel XL)", "angler (Nexus 6P)", "bullhead (Nexus 5X)", "sailfish (Pixel)", "taimen (Pixel 2 XL)", "walleye (Pixel 2)", "hikey (HiKey)", "hikey960 (HiKey 960)"]
 def DEVICE = funcs.loadParameter('parameters.groovy', 'DEVICE', "")
 if (DEVICE != "") {
@@ -75,6 +80,9 @@ pipeline {
 		booleanParam defaultValue: SKIP_CHROMIUM_BUILD, description: 'Skip Chromium build if a build already exists.', name: 'SKIP_CHROMIUM_BUILD'
 		booleanParam defaultValue: false, description: 'Force build even if no new versions exist of components.', name: 'FORCE_BUILD'
 		booleanParam defaultValue: false, description: 'Clean workspace completely before starting.  This will also force a build as a side effect.', name: 'CLEAN_WORKSPACE'
+		string defaultValue: REPO_PATCHES, description: 'An advanced option that allows you to specify a git repo with patches to apply to AOSP build tree.  See https://github.com/RattlesnakeOS/community_patches for more details.', name: 'REPO_PATCHES', trim: true
+		string defaultValue: REPO_PREBUILTS, description: 'An advanced option that allows you to specify a git repo with prebuilt APKs.  See https://github.com/RattlesnakeOS/example_prebuilts for more details.', name: 'REPO_PREBUILTS', trim: true
+		string defaultValue: HOSTS_FILE, description: 'An advanced option that allows you to specify a replacement /etc/hosts file to enable global dns adblocking (e.g. https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts).  Note: be careful with this, as you 1) will not get any sort of notification on blocking 2) if you need to unblock something you will have to rebuild the OS', name: 'HOSTS_FILE', trim: true
 	}
 
 	stages {
@@ -226,13 +234,16 @@ pipeline {
 					steps {
 						dir("rattlesnakeos-stack") {
 							script {
-								sh """#!/bin/bash -e
+								sh """#!/bin/bash -ex
 									go build main.go
 									./main -output stack-builder \\
 										-force-build="${params.FORCE_BUILD}" \\
 										-skip-chromium-build="${params.SKIP_CHROMIUM_BUILD}" \\
 										-release-url="${params.RELEASE_DOWNLOAD_ADDRESS}" \\
 										-build-type="${params.BUILD_TYPE}"
+										-repo-patches="${params.REPO_PATCHES}"
+										-repo-prebuilts="${params.REPO_PREBUILTS}"
+										-hosts-file="${params.HOSTS_FILE}"
 									cat 'stack-builder' | nl -ha -ba -fa | sed 's/^/stack-builder: /'
 								"""
 							}
