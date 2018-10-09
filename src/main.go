@@ -168,6 +168,16 @@ fi
 			-1,
 		},
 		{
+			`bash -c "`,
+			`bash -exc "`,
+			-1,
+		},
+		{
+			`ln --verbose --symbolic`,
+			`ln --verbose --symbolic -f`,
+			-1,
+		},
+		{
 			`"${BUILD_DIR}/script/release.sh" "$DEVICE"`,
 			`bash -x "${BUILD_DIR}/script/release.sh" "$DEVICE"`,
 			-1,
