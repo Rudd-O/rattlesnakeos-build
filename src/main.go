@@ -102,14 +102,7 @@ fi
 		{
 			`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true`,
 			`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true
-  for gitdir in $(find -name .git) ; do
-    pushd "$gitdir/.." || continue
-    git status || { popd ; return $? ; }
-    git clean -dff || { popd ; return $? ; }
-    git reset --hard || { popd ; return $? ; }
-    popd || return $?
-  done
-`,
+  gitcleansources`,
 			-1,
 		},
 		{
@@ -139,13 +132,7 @@ fi
 		{`fetch --nohooks android`, `test -f .gclient || fetch --nohooks android`, -1},
 		{
 			"yes | gclient sync --with_branch_heads --jobs 32 -RDf",
-			`for gitdir in $( find -name .git ) ; do
-	pushd $gitdir/.. || continue
-	git clean -dff || { popd ; return $? ; }
-	git reset --hard || { popd ; return $? ; }
-	popd || return $?
-  done
-  yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
+			`gitcleansources  yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
 			-1,
 		},
 		{`out/Default`, `"$HOME"/chromium-out`, -1},
@@ -288,14 +275,35 @@ aws() {
 	fi
   fi
 }
+
 gen_keys() {
 	echo "This program needs the keys already present in s3://${AWS_KEYS_BUCKET}/${DEVICE}" >&2
 	false
 }
+
+gitcleansources() {
+	local gitstatus
+	local r
+	local gitdir
+	for gitdir in $(find -name .git -type d) ; do
+		pushd "$gitdir/.." > /dev/null || continue
+		gitstatus=$(git status --ignored) || { r=$? ; echo "$gitstatus" >&2 ; popd > /dev/null ; return $? ; }
+		if echo "$gitstatus" | grep -q "nothing to commit, working tree clean" && echo "$gitstatus" | grep -qv "Untracked files:" && echo "$gitstatus" | grep -qv "Ignored files:" ; then
+			true
+		else
+			pwd
+			echo "$gitstatus" >&2
+			git clean -dff || { r=$? ; popd > /dev/null ; return $r ; }
+		fi
+		popd > /dev/null
+	done
+}
+
 aws_logging()
 {
 	return
 }
+
 cleanup() {
   rv=$?
   if [ $rv -ne 0 ]
@@ -304,6 +312,7 @@ cleanup() {
   fi
   exit $rv
 }
+
 persist_latest_versions() {
   rm -rf env*.save
   mkdir -p s3/interstage
@@ -317,9 +326,11 @@ AOSP_BUILD="$AOSP_BUILD"
 AOSP_BRANCH="$AOSP_BRANCH"
 EOF
 }
+
 reload_latest_versions() {
   source s3/interstage/env.$BUILD_NUMBER.save
 }
+
 if [ "$ONLY_REPORT" == "true" ]
 then
 full_run() {
