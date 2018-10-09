@@ -240,9 +240,9 @@ pipeline {
 										-force-build="${params.FORCE_BUILD}" \\
 										-skip-chromium-build="${params.SKIP_CHROMIUM_BUILD}" \\
 										-release-url="${params.RELEASE_DOWNLOAD_ADDRESS}" \\
-										-build-type="${params.BUILD_TYPE}"
-										-repo-patches="${params.REPO_PATCHES}"
-										-repo-prebuilts="${params.REPO_PREBUILTS}"
+										-build-type="${params.BUILD_TYPE}" \\
+										-repo-patches="${params.REPO_PATCHES}" \\
+										-repo-prebuilts="${params.REPO_PREBUILTS}" \\
 										-hosts-file="${params.HOSTS_FILE}"
 									cat 'stack-builder' | nl -ha -ba -fa | sed 's/^/stack-builder: /'
 								"""
