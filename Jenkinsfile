@@ -299,7 +299,7 @@ pipeline {
 						}
 						stage('aws_import_keys') {
 							steps {
-								timeout(time: 1, unit: 'MINUTES') {
+								timeout(time: 15, unit: 'MINUTES') {
 									runStack(currentBuild, true, "aws_import_keys")
 								}
 							}
