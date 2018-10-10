@@ -191,8 +191,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
   mkdir -p ${BUILD_DIR}/external/chromium/prebuilt/arm64
   aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" ${BUILD_DIR}/external/chromium/prebuilt/arm64/
   if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
-    "$STAGE"
-  cp -f ${MARLIN_KERNEL_OUT_DIR}/arch/arm64/boot/Image.lz4-dtb ${BUILD_DIR}/device/google/marlin-kernel/
+    cp -f ${MARLIN_KERNEL_OUT_DIR}/arch/arm64/boot/Image.lz4-dtb ${BUILD_DIR}/device/google/marlin-kernel/
   fi
   `,
 			-1,
