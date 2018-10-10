@@ -373,9 +373,9 @@ quiet() {
 	local cmd="$1"
 	shift
 	set +x
-	"$1" "$@" || r=$?
+	"$1" "$@" || r="$?"
 	set -x
-	return "$r?
+	return "$r"
 }
 
 gitcleansources() {
