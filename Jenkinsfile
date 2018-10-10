@@ -206,7 +206,7 @@ pipeline {
 								copyArtifacts(
 									projectName: JOB_NAME,
 									selector: lastSuccessful(),
-									excludes: '**/*tar.xz,**/*.zip,**/*.apk'
+									excludes: '**/*tar.xz,**/*.zip'
 								)
 							} catch (hudson.AbortException e) {
 								println "Artifacts from last build do not exist.  Continuing."
@@ -258,26 +258,6 @@ pipeline {
 						script {
 							if (currentBuild.description.contains("build not required")) {
 								currentBuild.result = 'NOT_BUILT'
-							}
-						}
-					}
-				}
-				stage("Get old build") {
-					when {
-						expression {
-							return currentBuild.result != 'NOT_BUILT' && !params.CLEAN_WORKSPACE
-						}
-					}
-					steps {
-						script {
-							try {
-								copyArtifacts(
-									projectName: JOB_NAME,
-									selector: lastSuccessful(),
-									filter: '**/revision,**/*.apk,**/*-stable*,**/*-vendor*',
-								)
-							} catch (hudson.AbortException e) {
-								println "Artifacts from last build do not exist.  Continuing."
 							}
 						}
 					}
