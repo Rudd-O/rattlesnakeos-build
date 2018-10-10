@@ -168,6 +168,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
     make -j$(nproc --all) dtc mkdtimg;
     export PATH=${BUILD_DIR}/out/host/linux-x86/bin:${PATH};
     ln --verbose --symbolic -f ${BUILD_DIR}/keys/${DEVICE}/verity_user.der.x509 ${MARLIN_KERNEL_SOURCE_DIR}/verity_user.der.x509;
+    ln --verbose --symbolic -f ${BUILD_DIR}/keys/${DEVICE}/verity_user.der.x509 ${MARLIN_KERNEL_OUT_DIR}/verity_user.der.x509;
     cd ${MARLIN_KERNEL_SOURCE_DIR} ;
     make -j$(nproc --all) ARCH=arm64 marlin_defconfig O=${MARLIN_KERNEL_OUT_DIR} || make -j$(nproc --all) ARCH=arm64 mrproper marlin_defconfig O=${MARLIN_KERNEL_OUT_DIR} ;
     make -j$(nproc --all) ARCH=arm64 CONFIG_COMPAT_VDSO=n CROSS_COMPILE=${BUILD_DIR}/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- O=${MARLIN_KERNEL_OUT_DIR} ;
