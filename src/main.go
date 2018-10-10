@@ -102,7 +102,7 @@ fi
 		{
 			`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true`,
 			`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true
-  gitcleansources`,
+  quiet gitcleansources`,
 			-1,
 		},
 		{
@@ -123,7 +123,7 @@ fi
 		{`fetch --nohooks android`, `test -f .gclient || fetch --nohooks android`, -1},
 		{
 			"yes | gclient sync --with_branch_heads --jobs 32 -RDf",
-			`gitcleansources
+			`quiet gitcleansources
   yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
 			-1,
 		},
