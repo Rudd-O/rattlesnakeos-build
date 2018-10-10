@@ -368,6 +368,16 @@ gitavoidreclone() {
 	fi
 }
 
+quiet() {
+	local r=0
+	local cmd="$1"
+	shift
+	set +x
+	"$1" "$@" || r=$?
+	set -x
+	return "$r?
+}
+
 gitcleansources() {
 	local gitstatus
 	local r
