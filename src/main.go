@@ -322,7 +322,7 @@ aws() {
 			cat "$in"
 		else
 			mkdir -p $( dirname "$out" )
-			cp -f "$in" "$out"
+			cp -f --preserve=all "$in" "$out"
 		fi
 	elif [ "$cmd" == "ls" ]
 	then
