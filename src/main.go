@@ -172,6 +172,9 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
     cd ${MARLIN_KERNEL_SOURCE_DIR} ;
     make -j$(nproc --all) ARCH=arm64 marlin_defconfig O=${MARLIN_KERNEL_OUT_DIR} || make -j$(nproc --all) ARCH=arm64 mrproper marlin_defconfig O=${MARLIN_KERNEL_OUT_DIR} ;
     make -j$(nproc --all) ARCH=arm64 CONFIG_COMPAT_VDSO=n CROSS_COMPILE=${BUILD_DIR}/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- O=${MARLIN_KERNEL_OUT_DIR} ;
+    # Now copy the recently-built kernel from its kernel-out place.
+      rsync -a --inplace ${MARLIN_KERNEL_OUT_DIR}/arch/arm64/boot/Image.lz4-dtb ${BUILD_DIR}/device/google/marlin-kernel/Image.lz4-dtb
+    fi
     echo Kernel copy deferred to build_aosp phase, since fetch_aosp_source will clear everything. >&2
     rm -rf ${BUILD_DIR}/out/build_*;
   "`,
@@ -181,13 +184,9 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			`# make modifications to default AOSP`,
 			`# make modifications to default AOSP
   # Since we just git cleaned everything, we will have to re-copy
-  # the MonochromePublic.apk file from its chromium-out place, as
-  # well as the recently-built kernel from its kernel-out place.
+  # the MonochromePublic.apk file from its chromium-out place.
   mkdir -p ${BUILD_DIR}/external/chromium/prebuilt/arm64
   aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" ${BUILD_DIR}/external/chromium/prebuilt/arm64/
-  if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
-    rsync -a --inplace ${MARLIN_KERNEL_OUT_DIR}/arch/arm64/boot/Image.lz4-dtb ${BUILD_DIR}/device/google/marlin-kernel/Image.lz4-dtb
-  fi
   `,
 			-1,
 		},
