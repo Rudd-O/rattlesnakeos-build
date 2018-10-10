@@ -173,7 +173,6 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
     make -j$(nproc --all) ARCH=arm64 CONFIG_COMPAT_VDSO=n CROSS_COMPILE=${BUILD_DIR}/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- O=${MARLIN_KERNEL_OUT_DIR} ;
     # Now copy the recently-built kernel from its kernel-out place.
     rsync -a --inplace ${MARLIN_KERNEL_OUT_DIR}/arch/arm64/boot/Image.lz4-dtb ${BUILD_DIR}/device/google/marlin-kernel/Image.lz4-dtb
-    echo Kernel copy deferred to build_aosp phase, since fetch_aosp_source will clear everything. >&2
     rm -rf ${BUILD_DIR}/out/build_*;
   "`,
 			-1,
