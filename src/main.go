@@ -123,7 +123,8 @@ fi
 		{`fetch --nohooks android`, `test -f .gclient || fetch --nohooks android`, -1},
 		{
 			"yes | gclient sync --with_branch_heads --jobs 32 -RDf",
-			`gitcleansources  yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
+			`gitcleansources
+  yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
 			-1,
 		},
 		{`out/Default`, `"$HOME"/chromium-out`, -1},
