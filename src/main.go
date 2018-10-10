@@ -430,6 +430,29 @@ reload_latest_versions() {
   source s3/interstage/env.$BUILD_NUMBER.save
 }
 
+aws_import_keys() {
+  echo "=================================="
+  echo "Running aws_import_keys (modified)"
+  echo "=================================="
+  if [ "$(aws s3 ls "s3://${AWS_KEYS_BUCKET}/${DEVICE}" | wc -l)" == '0' ]; then
+    echo "Keys do not exist for ${DEVICE}" >&2
+    return 1
+  else
+    echo "Keys already exist for ${DEVICE} - grabbing them from S3"
+    mkdir -p "${BUILD_DIR}/keys"
+    aws s3 sync "s3://${AWS_KEYS_BUCKET}" "${BUILD_DIR}/keys"
+
+    # Must copy this here because aws_gen_keys is short-circuited.
+    if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
+      gen_verity_key "${DEVICE}"
+    fi
+
+    if [ "${DEVICE}" == "walleye" ] || [ "${DEVICE}" == "taimen" ]; then
+      gen_avb_key "${DEVICE}"
+    fi
+  fi
+}
+
 if [ "$ONLY_REPORT" == "true" ]
 then
 full_run() {
