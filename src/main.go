@@ -196,6 +196,46 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			-1,
 		},
 		{
+			`yes | "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --fuse-ext2 --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${BUILD_DIR}/vendor/android-prepare-vendor"`,
+			`mkdir -p "${HOME}/vendor-in"
+  local flag="${HOME}/vendor-in/.${DEVICE}-$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")"
+  if test -d "${flag}" ; then
+    true
+  else
+    yes | "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --fuse-ext2 --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${HOME}/vendor-in"
+  fi
+  touch "${flag}"`,
+			-1,
+		},
+		{
+			`  mkdir --parents "${BUILD_DIR}/vendor/google_devices" || true
+  rm --recursive --force "${BUILD_DIR}/vendor/google_devices/$DEVICE" || true
+  mv "${BUILD_DIR}/vendor/android-prepare-vendor/${DEVICE}/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/${DEVICE}" "${BUILD_DIR}/vendor/google_devices"
+
+  # smaller devices need big brother vendor files
+  if [ "$DEVICE" == 'sailfish' ]; then
+    rm --recursive --force "${BUILD_DIR}/vendor/google_devices/marlin" || true
+    mv "${BUILD_DIR}/vendor/android-prepare-vendor/sailfish/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/marlin" "${BUILD_DIR}/vendor/google_devices"
+  fi
+  if [ "$DEVICE" == 'walleye' ]; then
+    rm --recursive --force "${BUILD_DIR}/vendor/google_devices/muskie" || true
+    mv "${BUILD_DIR}/vendor/android-prepare-vendor/walleye/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/muskie" "${BUILD_DIR}/vendor/google_devices"
+  fi
+`,
+			`  mkdir --parents "${BUILD_DIR}/vendor/google_devices"
+  rsync -avHAX --inplace --delete --delete-excluded "${HOME}/vendor-in/${DEVICE}/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/${DEVICE}/" "${BUILD_DIR}/vendor/google_devices/${DEVICE}/"
+
+  # smaller devices need big brother vendor files
+  if [ "$DEVICE" == 'sailfish' ]; then
+    rsync -avHAX --inplace --delete --delete-excluded "${HOME}/vendor-in/sailfish/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/marlin/" "${BUILD_DIR}/vendor/google_devices/marlin/"
+  fi
+  if [ "$DEVICE" == 'walleye' ]; then
+    rsync -avHAX --inplace --delete --delete-excluded "${HOME}/vendor-in/walleye/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/marlin/" "${BUILD_DIR}/vendor/google_devices/muskie/"
+  fi
+`,
+			-1,
+		},
+		{
 			`"${BUILD_DIR}/script/release.sh" "$DEVICE"`,
 			`bash -x "${BUILD_DIR}/script/release.sh" "$DEVICE"`,
 			-1,
