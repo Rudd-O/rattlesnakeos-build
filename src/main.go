@@ -375,7 +375,8 @@ gitcleansources() {
 		else
 			pwd
 			echo "$gitstatus" >&2
-			git clean -dff || { r=$? ; popd > /dev/null ; return $r ; }
+			git clean -fxd || { r=$? ; popd > /dev/null ; return $r ; }
+			git reset --hard || { r=$? ; popd > /dev/null ; return $r ; }
 		fi
 		popd > /dev/null
 	done
