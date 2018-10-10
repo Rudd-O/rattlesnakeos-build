@@ -236,6 +236,11 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			-1,
 		},
 		{
+			`source "${BUILD_DIR}/script/setup.sh"`,
+			`set +x ; source "${BUILD_DIR}/script/setup.sh" ; set -x`,
+			-1,
+		},
+		{
 			`"${BUILD_DIR}/script/release.sh" "$DEVICE"`,
 			`bash -x "${BUILD_DIR}/script/release.sh" "$DEVICE"`,
 			-1,
