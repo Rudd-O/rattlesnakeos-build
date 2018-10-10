@@ -155,13 +155,40 @@ fi
 			-1,
 		},
 		{
-			`bash -c "`,
-			`bash -exc "`,
+			`MARLIN_KERNEL_SOURCE_DIR="${BUILD_DIR}/kernel/google/marlin"`,
+			`MARLIN_KERNEL_SOURCE_DIR="${BUILD_DIR}/kernel/google/marlin"
+MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			-1,
 		},
 		{
-			`ln --verbose --symbolic`,
-			`ln --verbose --symbolic -f`,
+			`bash -c "\
+    cd ${BUILD_DIR};
+    . build/envsetup.sh;
+    make -j$(nproc --all) dtc mkdtimg;
+    export PATH=${BUILD_DIR}/out/host/linux-x86/bin:${PATH};
+    ln --verbose --symbolic ${BUILD_DIR}/keys/${DEVICE}/verity_user.der.x509 ${MARLIN_KERNEL_SOURCE_DIR}/verity_user.der.x509;
+    cd ${MARLIN_KERNEL_SOURCE_DIR};
+    make -j$(nproc --all) ARCH=arm64 marlin_defconfig;
+    make -j$(nproc --all) ARCH=arm64 CONFIG_COMPAT_VDSO=n CROSS_COMPILE=${BUILD_DIR}/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-;
+    cp -f arch/arm64/boot/Image.lz4-dtb ${BUILD_DIR}/device/google/marlin-kernel/;
+    rm -rf ${BUILD_DIR}/out/build_*;
+  "`,
+			`bash -c "\
+    set -ex ;
+    mkdir -p ${MARLIN_KERNEL_OUT_DIR} ;
+    cd ${BUILD_DIR};
+    set +x
+    . build/envsetup.sh;
+    set -x
+    make -j$(nproc --all) dtc mkdtimg;
+    export PATH=${BUILD_DIR}/out/host/linux-x86/bin:${PATH};
+    ln --verbose --symbolic -f ${BUILD_DIR}/keys/${DEVICE}/verity_user.der.x509 ${MARLIN_KERNEL_SOURCE_DIR}/verity_user.der.x509;
+    cd ${MARLIN_KERNEL_SOURCE_DIR} ;
+    make -j$(nproc --all) ARCH=arm64 marlin_defconfig O=${MARLIN_KERNEL_OUT_DIR} || make -j$(nproc --all) ARCH=arm64 mrproper marlin_defconfig O=${MARLIN_KERNEL_OUT_DIR} ;
+    make -j$(nproc --all) ARCH=arm64 CONFIG_COMPAT_VDSO=n CROSS_COMPILE=${BUILD_DIR}/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- O=${MARLIN_KERNEL_OUT_DIR} ;
+    cp -f ${MARLIN_KERNEL_OUT_DIR}/arch/arm64/boot/Image.lz4-dtb ${BUILD_DIR}/device/google/marlin-kernel/;
+    rm -rf ${BUILD_DIR}/out/build_*;
+  "`,
 			-1,
 		},
 		{
