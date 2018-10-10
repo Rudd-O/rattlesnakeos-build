@@ -116,8 +116,8 @@ fi
 			-1,
 		},
 		{
-			` aws s3 cp "${BUILD_DIR}/external/chromium/prebuilt/arm64/MonochromePublic.apk" "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk"`,
-			``,
+			`aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" ${BUILD_DIR}/external/chromium/prebuilt/arm64/`,
+			`# Suppressed copy from S3 to external/prebuilt/arm64/ as this happens later`,
 			-1,
 		},
 		{`fetch --nohooks android`, `test -f .gclient || fetch --nohooks android`, -1},
