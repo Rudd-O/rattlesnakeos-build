@@ -373,7 +373,7 @@ quiet() {
 	local cmd="$1"
 	shift
 	set +x
-	"$1" "$@" || r="$?"
+	"$cmd" "$@" || r="$?"
 	set -x
 	return "$r"
 }
