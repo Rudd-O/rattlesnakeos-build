@@ -135,14 +135,7 @@ fi
 		},
 		{
 			`git clone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"`,
-			`if test -d "${MARLIN_KERNEL_SOURCE_DIR}"/.git ; then
-	pushd "${MARLIN_KERNEL_SOURCE_DIR}"
-	sed -i 's|url = .*|url = '"${KERNEL_SOURCE_URL}"'|' .git/config
-	git fetch
-	popd
-  else
-	git clone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"
-  fi`,
+			`gitavoidreclone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"`,
 			-1,
 		},
 		{
@@ -194,6 +187,11 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
     cp -f ${MARLIN_KERNEL_OUT_DIR}/arch/arm64/boot/Image.lz4-dtb ${BUILD_DIR}/device/google/marlin-kernel/
   fi
   `,
+			-1,
+		},
+		{
+			`git clone $REPO_PATCHES ${patches_dir}`,
+			`gitavoidreclone "$REPO_PATCHES" ${patches_dir}`,
 			-1,
 		},
 		{
@@ -311,6 +309,17 @@ aws() {
 gen_keys() {
 	echo "This program needs the keys already present in s3://${AWS_KEYS_BUCKET}/${DEVICE}" >&2
 	false
+}
+
+gitavoidreclone() {
+	if test -d "$2"/.git ; then
+		pushd "$2"
+		sed -i 's|url = .*|url = '"$1"'|' .git/config
+		git fetch
+		popd
+	else
+		git clone "$1" "$2"
+	fi
 }
 
 gitcleansources() {
