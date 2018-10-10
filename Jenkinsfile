@@ -274,6 +274,7 @@ pipeline {
 								copyArtifacts(
 									projectName: JOB_NAME,
 									selector: lastSuccessful(),
+									filter: '**/revision,**/*.apk,**/*stable*,**/*vendor*',
 								)
 							} catch (hudson.AbortException e) {
 								println "Artifacts from last build do not exist.  Continuing."
