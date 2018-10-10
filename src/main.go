@@ -203,8 +203,8 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
     true
   else
     yes | "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --fuse-ext2 --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${HOME}/vendor-in"
-    touch "${flag}"`,
-  fi
+    touch "${flag}"
+  fi`,
 			-1,
 		},
 		{
