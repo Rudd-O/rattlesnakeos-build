@@ -97,6 +97,16 @@ pipeline {
 						}
 					}
 				}
+				stage('Clean master') {
+					when {
+						expression {
+							return params.CLEAN_WORKSPACE
+						}
+					}
+					steps {
+						sh 'git clean -fxd'
+					}
+				}
 				stage('Check') {
 					steps {
 						script {
@@ -107,16 +117,6 @@ pipeline {
 								}
 							"""
 						}
-					}
-				}
-				stage('Clean master') {
-					when {
-						expression {
-							return params.CLEAN_WORKSPACE
-						}
-					}
-					steps {
-						sh 'git clean -fxd'
 					}
 				}
 				stage('Get stack') {
@@ -166,98 +166,102 @@ pipeline {
 			agent { label 'android' }
 			options { skipDefaultCheckout() }
 			stages {
-				stage('Clean slave') {
-					when {
-						expression {
-							return params.CLEAN_WORKSPACE
-						}
-					}
-					steps {
-						sh "sudo rm -rf * .??*"
-					}
-				}
-				stage("Unstash inputs") {
-					steps {
-						script {
-							sh '''#!/bin/bash -xe
-								rm -rf s3
-								mkdir -p s3/rattlesnakeos-keys
-							'''
-						}
-						dir("s3/rattlesnakeos-keys") {
-							unstash 'keys'
-						}
-						sh 'rm -rf rattlesnakeos-stack'
-						unstash 'stack'
-						dir("rattlesnakeos-stack") {
-							unstash 'code'
-						}
-					}
-				}
-				stage("Markers") {
-					when {
-						expression {
-							return !params.CLEAN_WORKSPACE
-						}
-					}
-					steps {
-						script {
-							try {
-								copyArtifacts(
-									projectName: JOB_NAME,
-									selector: lastSuccessful(),
-									excludes: '**/*tar.xz,**/*.zip'
-								)
-							} catch (hudson.AbortException e) {
-								println "Artifacts from last build do not exist.  Continuing."
+				stage('Prepare') {
+					stages {
+						stage('Clean slave') {
+							when {
+								expression {
+									return params.CLEAN_WORKSPACE
+								}
+							}
+							steps {
+								sh "sudo rm -rf * .??*"
 							}
 						}
-					}
-				}
-				stage("Deps") {
-					steps {
-						println "Install deps"
-						timeout(time: 10, unit: 'MINUTES') {
-							retry(2) {
+						stage("Unstash inputs") {
+							steps {
 								script {
-									funcs.aptInstall(["golang", "curl"])
+									sh '''#!/bin/bash -xe
+										rm -rf s3
+										mkdir -p s3/rattlesnakeos-keys
+									'''
+								}
+								dir("s3/rattlesnakeos-keys") {
+									unstash 'keys'
+								}
+								sh 'rm -rf rattlesnakeos-stack'
+								unstash 'stack'
+								dir("rattlesnakeos-stack") {
+									unstash 'code'
 								}
 							}
 						}
-						println "Enable source"
-						script {
-							funcs.aptEnableSrc()
-						}
-					}
-				}
-				stage("Stack") {
-					steps {
-						dir("rattlesnakeos-stack") {
-							script {
-								sh """#!/bin/bash -ex
-									go build main.go
-									./main -output stack-builder \\
-										-force-build="${params.FORCE_BUILD}" \\
-										-skip-chromium-build="${params.SKIP_CHROMIUM_BUILD}" \\
-										-release-url="${params.RELEASE_DOWNLOAD_ADDRESS}" \\
-										-build-type="${params.BUILD_TYPE}" \\
-										-repo-patches="${params.REPO_PATCHES}" \\
-										-repo-prebuilts="${params.REPO_PREBUILTS}" \\
-										-hosts-file="${params.HOSTS_FILE}"
-									cat 'stack-builder' | nl -ha -ba -fa | sed 's/^/stack-builder: /'
-								"""
+						stage("Markers") {
+							when {
+								expression {
+									return !params.CLEAN_WORKSPACE
+								}
+							}
+							steps {
+								script {
+									try {
+										copyArtifacts(
+											projectName: JOB_NAME,
+											selector: lastSuccessful(),
+											excludes: '**/*tar.xz,**/*.zip'
+										)
+									} catch (hudson.AbortException e) {
+										println "Artifacts from last build do not exist.  Continuing."
+									}
+								}
 							}
 						}
-					}
-				}
-				stage('Describe') {
-					steps {
-						timeout(time: 5, unit: 'MINUTES') {
-							runStack(currentBuild, false)
+						stage("Deps") {
+							steps {
+								println "Install deps"
+								timeout(time: 10, unit: 'MINUTES') {
+									retry(2) {
+										script {
+											funcs.aptInstall(["golang", "curl"])
+										}
+									}
+								}
+								println "Enable source"
+								script {
+									funcs.aptEnableSrc()
+								}
+							}
 						}
-						script {
-							if (currentBuild.description.contains("build not required")) {
-								currentBuild.result = 'NOT_BUILT'
+						stage("Stack") {
+							steps {
+								dir("rattlesnakeos-stack") {
+									script {
+										sh """#!/bin/bash -ex
+											go build main.go
+											./main -output stack-builder \\
+												-force-build="${params.FORCE_BUILD}" \\
+												-skip-chromium-build="${params.SKIP_CHROMIUM_BUILD}" \\
+												-release-url="${params.RELEASE_DOWNLOAD_ADDRESS}" \\
+												-build-type="${params.BUILD_TYPE}" \\
+												-repo-patches="${params.REPO_PATCHES}" \\
+												-repo-prebuilts="${params.REPO_PREBUILTS}" \\
+												-hosts-file="${params.HOSTS_FILE}"
+											cat 'stack-builder' | nl -ha -ba -fa | sed 's/^/stack-builder: /'
+										"""
+									}
+								}
+							}
+						}
+						stage('Describe') {
+							steps {
+								timeout(time: 5, unit: 'MINUTES') {
+									runStack(currentBuild, false)
+								}
+								script {
+									if (currentBuild.description.contains("build not required")) {
+										currentBuild.result = 'NOT_BUILT'
+									}
+								}
 							}
 						}
 					}
@@ -341,18 +345,16 @@ pipeline {
 						}
 					}
 				}
-			}
-		}
-		stage('Archive') {
-			agent { label 'android' }
-			options { skipDefaultCheckout() }
-			when {
-				expression {
-					return currentBuild.result != 'NOT_BUILT'
+				stage('Archive') {
+					when {
+						expression {
+							return currentBuild.result != 'NOT_BUILT'
+						}
+					}
+					steps {
+						archiveArtifacts artifacts: 's3/*-release/**', fingerprint: true
+					}
 				}
-			}
-			steps {
-				archiveArtifacts artifacts: 's3/*-release/**', fingerprint: true
 			}
 		}
 		stage('Publish') {
