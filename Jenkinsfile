@@ -341,59 +341,41 @@ pipeline {
 						}
 					}
 				}
-				stage('Stash artifacts') {
-					when {
-						expression {
-							return currentBuild.result != 'NOT_BUILT'
-						}
-					}
-					steps {
-						stash includes: 's3/*-release/**', name: 'artifacts'
-					}
-				}
 			}
 		}
-		stage('Finish') {
+		stage('Archive') {
+			agent { label 'android' }
+			options { skipDefaultCheckout() }
+			when {
+				expression {
+					return currentBuild.result != 'NOT_BUILT'
+				}
+			}
+			steps {
+				archiveArtifacts artifacts: 's3/*-release/**', fingerprint: true
+			}
+		}
+		stage('Publish') {
 			agent { label 'master' }
 			options { skipDefaultCheckout() }
-			stages {
-				stage('Unstash artifacts') {
-					when {
-						expression {
-							return currentBuild.result != 'NOT_BUILT'
-						}
-					}
-					steps {
-						script {
-							sh 'rm -rf s3'
-						}
-						unstash 'artifacts'
-					}
+			when {
+				expression {
+					return params.RELEASE_UPLOAD_ADDRESS != '' && currentBuild.result != 'NOT_BUILT'
 				}
-				stage('Archive') {
-					when {
-						expression {
-							return currentBuild.result != 'NOT_BUILT'
-						}
-					}
-					steps {
-						archiveArtifacts artifacts: 's3/*-release/**', fingerprint: true
-					}
-				}
-				stage('Publish') {
-					when {
-						expression {
-							return currentBuild.result != 'NOT_BUILT' && params.RELEASE_UPLOAD_ADDRESS != ''
-						}
-					}
-					steps {
-						script {
-							sh """#!/bin/bash -xe
-								rsync -a -- s3/*-release/ "${params.RELEASE_UPLOAD_ADDRESS}"/
-							"""
-							currentBuild.description = currentBuild.description + "\nPublished artifacts to ${params.RELEASE_UPLOAD_ADDRESS}"
-						}
-					}
+			}
+			steps {
+				sh 'rm -rf s3'
+				copyArtifacts(
+					projectName: JOB_NAME,
+					selector: specific(BUILD_NUMBER),
+					filter: 's3/*-release/*ota_update*,s3/*-release/*-stable,s3/*-release/*-beta'
+				)
+				sh """
+					rsync -a -- s3/*-release/ "${params.RELEASE_UPLOAD_ADDRESS}"/
+				"""
+				sh 'rm -rf s3'
+				script {
+					currentBuild.description = currentBuild.description + "\nPublished artifacts to ${params.RELEASE_UPLOAD_ADDRESS}"
 				}
 			}
 		}
