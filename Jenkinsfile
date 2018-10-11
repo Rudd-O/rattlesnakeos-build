@@ -218,7 +218,6 @@ pipeline {
 						}
 						stage("Deps") {
 							steps {
-								println "Install deps"
 								timeout(time: 10, unit: 'MINUTES') {
 									retry(2) {
 										script {
@@ -226,7 +225,6 @@ pipeline {
 										}
 									}
 								}
-								println "Enable source"
 								script {
 									funcs.aptEnableSrc()
 								}
