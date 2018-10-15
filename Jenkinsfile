@@ -285,10 +285,24 @@ pipeline {
 								}
 							}
 						}
-						stage('fetch_aosp_source') {
+						stage('aosp_repo_init') {
 							steps {
-								timeout(time: 6, unit: 'HOURS') {
-									runStack(currentBuild, true, "fetch_aosp_source")
+								timeout(time: 5, unit: 'MINUTES') {
+									runStack(currentBuild, true, "aosp_repo_init")
+								}
+							}
+						}
+						stage('aosp_repo_modifications') {
+							steps {
+								timeout(time: 15, unit: 'MINUTES') {
+									runStack(currentBuild, true, "aosp_repo_modifications")
+								}
+							}
+						}
+						stage('aosp_repo_sync') {
+							steps {
+								timeout(time: 3, unit: 'HOURS') {
+									runStack(currentBuild, true, "aosp_repo_sync")
 								}
 							}
 						}
@@ -327,10 +341,10 @@ pipeline {
 								}
 							}
 						}
-						stage('aws_release') {
+						stage('release') {
 							steps {
 								timeout(time: 15, unit: 'MINUTES') {
-									runStack(currentBuild, true, "aws_release")
+									runStack(currentBuild, true, "release")
 								}
 							}
 						}

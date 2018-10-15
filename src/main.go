@@ -72,20 +72,6 @@ func main() {
 		{`echo "No build is required, but FORCE_BUILD=true"`, `aws_notify "No build is required, but FORCE_BUILD=true"`, -1},
 		{`echo "New build is required"`, `aws_notify "New build is required"`, -1},
 		{
-			`wget ${ANDROID_SDK_URL} -O sdk-tools.zip
-  unzip sdk-tools.zip`,
-			`if [ ! -f sdk-tools.zip ] ; then
-	wget ${ANDROID_SDK_URL} -O sdk-tools.zip
-fi
-  unzip -o sdk-tools.zip  || {
-	echo unzip failed, retrying download
-	rm -f sdk-tools.zip
-	wget ${ANDROID_SDK_URL} -O sdk-tools.zip
-	unzip -o sdk-tools.zip
-  }`,
-			-1,
-		},
-		{
 			`BUILD_TYPE="user"`,
 			fmt.Sprintf(`BUILD_TYPE="%s" # replaced`, *buildType),
 			-1,
@@ -135,18 +121,19 @@ fi
 			-1,
 		},
 		{
-			`git clone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"`,
+			`retry git clone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"`,
 			`gitavoidreclone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"`,
 			-1,
 		},
 		{
-			`MARLIN_KERNEL_SOURCE_DIR="${BUILD_DIR}/kernel/google/marlin"`,
-			`MARLIN_KERNEL_SOURCE_DIR="${BUILD_DIR}/kernel/google/marlin"
+			`MARLIN_KERNEL_SOURCE_DIR="${HOME}/kernel/google/marlin"`,
+			`MARLIN_KERNEL_SOURCE_DIR="${HOME}/kernel/google/marlin"
 MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			-1,
 		},
 		{
 			`bash -c "\
+    set -e;
     cd ${BUILD_DIR};
     . build/envsetup.sh;
     make -j$(nproc --all) dtc mkdtimg;
@@ -193,13 +180,13 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			-1,
 		},
 		{
-			`yes | "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --fuse-ext2 --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${BUILD_DIR}/vendor/android-prepare-vendor"`,
+			`timeout 30m "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --debugfs --yes --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${BUILD_DIR}/vendor/android-prepare-vendor"`,
 			`mkdir -p "${HOME}/vendor-in"
   local flag="${HOME}/vendor-in/.${DEVICE}-$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")"
   if test -f "${flag}" ; then
     true
   else
-    yes | "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --fuse-ext2 --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${HOME}/vendor-in"
+    "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --fuse-ext2 --yes --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${HOME}/vendor-in"
     touch "${flag}"
   fi`,
 			-1,
@@ -233,13 +220,8 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			-1,
 		},
 		{
-			`source "${BUILD_DIR}/script/setup.sh"`,
-			`set +x ; source "${BUILD_DIR}/script/setup.sh" ; set -x`,
-			-1,
-		},
-		{
-			`"${BUILD_DIR}/script/release.sh" "$DEVICE"`,
-			`bash -x "${BUILD_DIR}/script/release.sh" "$DEVICE"`,
+			`source build/envsetup.sh`,
+			`set +x ; source build/envsetup.sh ; set -x`,
 			-1,
 		},
 		{
@@ -427,14 +409,12 @@ reload_latest_versions() {
 }
 
 aws_import_keys() {
-  echo "=================================="
-  echo "Running aws_import_keys (modified)"
-  echo "=================================="
+  log_header ${FUNCNAME}
   if [ "$(aws s3 ls "s3://${AWS_KEYS_BUCKET}/${DEVICE}" | wc -l)" == '0' ]; then
     echo "Keys do not exist for ${DEVICE}" >&2
     return 1
   else
-    echo "Keys already exist for ${DEVICE} - grabbing them from S3"
+    log "Keys already exist for ${DEVICE} - grabbing them from S3"
     mkdir -p "${BUILD_DIR}/keys"
     aws s3 sync "s3://${AWS_KEYS_BUCKET}" "${BUILD_DIR}/keys"
 
@@ -452,15 +432,21 @@ aws_import_keys() {
 if [ "$ONLY_REPORT" == "true" ]
 then
 full_run() {
+  log_header ${FUNCNAME}
+
   get_latest_versions
   persist_latest_versions
   check_for_new_versions
 }
 else
 full_run() {
+  log_header ${FUNCNAME}
+
   if [ "$STAGE" != "" ] ; then
     reload_latest_versions
-    if [ "$STAGE" == "rebuild_marlin_kernel" ] ; then
+    if [ "$STAGE" == "release" ] ; then
+      "$STAGE" "${DEVICE}"
+    elif [ "$STAGE" == "rebuild_marlin_kernel" ] ; then
       if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
         "$STAGE"
       fi
@@ -473,7 +459,9 @@ full_run() {
     aws_notify "RattlesnakeOS Build STARTED"
     setup_env
     check_chromium
-    fetch_aosp_source
+    aosp_repo_init
+    aosp_repo_modifications
+    aosp_repo_sync
     setup_vendor
     aws_import_keys
     apply_patches
@@ -482,7 +470,8 @@ full_run() {
       rebuild_marlin_kernel
     fi
     build_aosp
-    aws_release
+    release "${DEVICE}"
+    aws_upload
     checkpoint_versions
     aws_notify "RattlesnakeOS Build SUCCESS"
   fi
