@@ -298,17 +298,17 @@ pipeline {
 								}
 							}
 						}
-						stage('setup_vendor') {
-							steps {
-								timeout(time: 1, unit: 'HOURS') {
-									runStack(currentBuild, true, "setup_vendor")
-								}
-							}
-						}
 						stage('aws_import_keys') {
 							steps {
 								timeout(time: 15, unit: 'MINUTES') {
 									runStack(currentBuild, true, "aws_import_keys")
+								}
+							}
+						}
+						stage('setup_vendor') {
+							steps {
+								timeout(time: 1, unit: 'HOURS') {
+									runStack(currentBuild, true, "setup_vendor")
 								}
 							}
 						}

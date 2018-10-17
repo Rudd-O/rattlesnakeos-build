@@ -22,21 +22,12 @@ func boolStr(b bool) string {
 	return bStr
 }
 
-func _envStr(n string, required bool) string {
+func envStr(n string) string {
 	if value, ok := os.LookupEnv(n); ok {
 		return value
-	} else if required {
-		log.Fatalf("Environment variable %s was required.  Aborting.", n)
 	}
+	log.Fatalf("Environment variable %s was required.  Aborting.", n)
 	return ""
-}
-
-func envStr(n string) string {
-	return _envStr(n, false)
-}
-
-func requireEnvStr(n string) string {
-	return _envStr(n, true)
 }
 
 func envBool(n string) bool {
@@ -65,6 +56,11 @@ func main() {
 		{"<%", "{{", -1},
 		{"%>", "}}", -1},
 		{
+			`"https://${AWS_RELEASE_BUCKET}.s3.amazonaws.com"`,
+			`"` + envStr("RELEASE_DOWNLOAD_ADDRESS") + `"`,
+			-1,
+		},
+		{
 			`AWS_SNS_ARN=$(aws --region ${REGION} sns list-topics --query 'Topics[0].TopicArn' --output text | cut -d":" -f1,2,3,4,5)":${STACK_NAME}"`,
 			`AWS_SNS_ARN=none`,
 			-1,
@@ -76,7 +72,7 @@ func main() {
 		{`echo "New build is required"`, `aws_notify "New build is required"`, -1},
 		{
 			`BUILD_TYPE="user"`,
-			fmt.Sprintf(`BUILD_TYPE="%s" # replaced`, requireEnvStr("BUILD_TYPE")),
+			fmt.Sprintf(`BUILD_TYPE="%s" # replaced`, envStr("BUILD_TYPE")),
 			-1,
 		},
 		{
@@ -141,7 +137,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
     . build/envsetup.sh;
     make -j$(nproc --all) dtc mkdtimg;
     export PATH=${BUILD_DIR}/out/host/linux-x86/bin:${PATH};
-    ln --verbose --symbolic ${BUILD_DIR}/keys/${DEVICE}/verity_user.der.x509 ${MARLIN_KERNEL_SOURCE_DIR}/verity_user.der.x509;
+    ln --verbose --symbolic ${KEYS_DIR}/${DEVICE}/verity_user.der.x509 ${MARLIN_KERNEL_SOURCE_DIR}/verity_user.der.x509;
     cd ${MARLIN_KERNEL_SOURCE_DIR};
     make -j$(nproc --all) ARCH=arm64 marlin_defconfig;
     make -j$(nproc --all) ARCH=arm64 CONFIG_COMPAT_VDSO=n CROSS_COMPILE=${BUILD_DIR}/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-;
@@ -149,20 +145,19 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
     rm -rf ${BUILD_DIR}/out/build_*;
   "`,
 			`bash -c "\
-    set -ex ;
+    set -e;
     mkdir -p ${MARLIN_KERNEL_OUT_DIR} ;
     cd ${BUILD_DIR};
-    set +x
     . build/envsetup.sh;
     set -x
     make -j$(nproc --all) dtc mkdtimg;
     export PATH=${BUILD_DIR}/out/host/linux-x86/bin:${PATH};
-    ln --verbose --symbolic -f ${BUILD_DIR}/keys/${DEVICE}/verity_user.der.x509 ${MARLIN_KERNEL_SOURCE_DIR}/verity_user.der.x509;
+    ln --verbose --symbolic -f ${KEYS_DIR}/${DEVICE}/verity_user.der.x509 ${MARLIN_KERNEL_SOURCE_DIR}/verity_user.der.x509;
     cd ${MARLIN_KERNEL_SOURCE_DIR} ;
     make -j$(nproc --all) ARCH=arm64 marlin_defconfig O=${MARLIN_KERNEL_OUT_DIR} || make -j$(nproc --all) ARCH=arm64 mrproper marlin_defconfig O=${MARLIN_KERNEL_OUT_DIR} ;
     make -j$(nproc --all) ARCH=arm64 CONFIG_COMPAT_VDSO=n CROSS_COMPILE=${BUILD_DIR}/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android- O=${MARLIN_KERNEL_OUT_DIR} ;
     # Now copy the recently-built kernel from its kernel-out place.
-    rsync -a --inplace ${MARLIN_KERNEL_OUT_DIR}/arch/arm64/boot/Image.lz4-dtb ${BUILD_DIR}/device/google/marlin-kernel/Image.lz4-dtb
+    rsync -a --inplace ${MARLIN_KERNEL_OUT_DIR}/arch/arm64/boot/Image.lz4-dtb ${BUILD_DIR}/device/google/marlin-kernel/Image.lz4-dtb;
     rm -rf ${BUILD_DIR}/out/build_*;
   "`,
 			-1,
@@ -196,16 +191,16 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 		},
 		{
 			`  mkdir --parents "${BUILD_DIR}/vendor/google_devices" || true
-  rm --recursive --force "${BUILD_DIR}/vendor/google_devices/$DEVICE" || true
+  rm -rf "${BUILD_DIR}/vendor/google_devices/$DEVICE" || true
   mv "${BUILD_DIR}/vendor/android-prepare-vendor/${DEVICE}/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/${DEVICE}" "${BUILD_DIR}/vendor/google_devices"
 
   # smaller devices need big brother vendor files
   if [ "$DEVICE" == 'sailfish' ]; then
-    rm --recursive --force "${BUILD_DIR}/vendor/google_devices/marlin" || true
+    rm -rf "${BUILD_DIR}/vendor/google_devices/marlin" || true
     mv "${BUILD_DIR}/vendor/android-prepare-vendor/sailfish/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/marlin" "${BUILD_DIR}/vendor/google_devices"
   fi
   if [ "$DEVICE" == 'walleye' ]; then
-    rm --recursive --force "${BUILD_DIR}/vendor/google_devices/muskie" || true
+    rm -rf "${BUILD_DIR}/vendor/google_devices/muskie" || true
     mv "${BUILD_DIR}/vendor/android-prepare-vendor/walleye/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/muskie" "${BUILD_DIR}/vendor/google_devices"
   fi
 `,
@@ -232,6 +227,11 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			`"$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/${RELEASE_CHANNEL}" -)"`,
 			-1,
 		},
+		{
+			`make clobber`,
+			`# do not make clobber, verity key generation happens only once`,
+			-1,
+		},
 	}
 
 	for _, r := range replacements {
@@ -241,6 +241,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 	}
 
 	type Data struct {
+		EncryptedKeys   string
 		Region          string
 		Version         string
 		PreventShutdown string
@@ -272,14 +273,16 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 		log.Fatalf("%s", err)
 	}
 
-	s := tpl.String()
+	s := strings.TrimSpace(tpl.String())
 	if strings.Contains(s, "<%") {
 		s = strings.Split(tpl.String(), "<%")[0]
 		s = s + "<%" + strings.Split(tpl.String(), "<%")[1]
 		log.Fatalf("The resultant string did not render properly.\n\n %s", s)
 	}
-	s = strings.Split(s, "\nfull_run\n")[0]
-	s = s + `
+
+	s = strings.TrimSuffix(tpl.String(), "full_run\n")
+	s = s + `# Beginning of outright overridden functions
+
 aws() {
   func="$1"
   cmd="$2"
@@ -344,11 +347,6 @@ aws() {
 		rsync -a --delete -- "$in/" "$out/"
 	fi
   fi
-}
-
-gen_keys() {
-	echo "This program needs the keys already present in s3://${AWS_KEYS_BUCKET}/${DEVICE}" >&2
-	false
 }
 
 gitavoidreclone() {
@@ -423,26 +421,31 @@ reload_latest_versions() {
   source s3/interstage/env.$BUILD_NUMBER.save
 }
 
-aws_import_keys() {
-  log_header ${FUNCNAME}
-  if [ "$(aws s3 ls "s3://${AWS_KEYS_BUCKET}/${DEVICE}" | wc -l)" == '0' ]; then
-    echo "Keys do not exist for ${DEVICE}" >&2
-    return 1
-  else
-    log "Keys already exist for ${DEVICE} - grabbing them from S3"
-    mkdir -p "${BUILD_DIR}/keys"
-    aws s3 sync "s3://${AWS_KEYS_BUCKET}" "${BUILD_DIR}/keys"
+get_encryption_key() {
+  echo "Assert not reached ${FUNCNAME}." >&2 ; exit 100
+}
 
-    # Must copy this here because aws_gen_keys is short-circuited.
-    if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
-      gen_verity_key "${DEVICE}"
-    fi
+initial_key_setup() {
+  echo "Assert not reached ${FUNCNAME}." >&2 ; exit 100
+}
 
-    if [ "${DEVICE}" == "walleye" ] || [ "${DEVICE}" == "taimen" ]; then
-      gen_avb_key "${DEVICE}"
-    fi
+gen_keys() {
+  log_header "${FUNCNAME} (overridden)"
+  if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
+    gen_verity_key "${DEVICE}"
+  fi
+
+  if [ "${DEVICE}" == "walleye" ] || [ "${DEVICE}" == "taimen" ]; then
+    gen_avb_key "${DEVICE}"
   fi
 }
+
+aws_import_keys() {
+  log_header "${FUNCNAME} (overridden)"
+  aws s3 sync "s3://${AWS_KEYS_BUCKET}" "${KEYS_DIR}"
+  gen_keys
+}
+
 
 if [ "$ONLY_REPORT" == "true" ]
 then
@@ -477,8 +480,8 @@ full_run() {
     aosp_repo_init
     aosp_repo_modifications
     aosp_repo_sync
-    setup_vendor
     aws_import_keys
+    setup_vendor
     apply_patches
     # only marlin and sailfish need kernel rebuilt so that verity_key is included
     if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
@@ -492,9 +495,9 @@ full_run() {
   fi
 }
 fi
+
+full_run
 `
-	s = s + "\nRELEASE_URL=" + envStr("RELEASE_URL")
-	s = s + "\nfull_run\n"
 	err = ioutil.WriteFile(*output, []byte(s), 0755)
 	if err != nil {
 		log.Fatalf("%s", err)
