@@ -22,16 +22,15 @@ func boolStr(b bool) string {
 	return bStr
 }
 
-func envStr(n string) string {
+func envStr(n string, d string) string {
 	if value, ok := os.LookupEnv(n); ok {
 		return value
 	}
-	log.Fatalf("Environment variable %s was required.  Aborting.", n)
-	return ""
+	return d
 }
 
 func envBool(n string) bool {
-	value := envStr(n)
+	value := envStr(n, "")
 	return value == "yes" || value == "true" || value == "1"
 }
 
@@ -57,7 +56,7 @@ func main() {
 		{"%>", "}}", -1},
 		{
 			`"https://${AWS_RELEASE_BUCKET}.s3.amazonaws.com"`,
-			`"` + envStr("RELEASE_DOWNLOAD_ADDRESS") + `"`,
+			`"` + envStr("RELEASE_DOWNLOAD_ADDRESS", "") + `"`,
 			-1,
 		},
 		{
@@ -72,7 +71,7 @@ func main() {
 		{`echo "New build is required"`, `aws_notify "New build is required"`, -1},
 		{
 			`BUILD_TYPE="user"`,
-			fmt.Sprintf(`BUILD_TYPE="%s" # replaced`, envStr("BUILD_TYPE")),
+			fmt.Sprintf(`BUILD_TYPE="%s" # replaced`, envStr("BUILD_TYPE", "user")),
 			-1,
 		},
 		{
@@ -257,10 +256,10 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 		Force:           boolStr(envBool("FORCE_BUILD")),
 		Name:            "rattlesnakeos",
 		Region:          "none",
-		RepoPatches:     envStr("REPO_PATCHES"),
-		RepoPrebuilts:   envStr("REPO_PREBUILTS"),
-		HostsFile:       envStr("HOSTS_FILE"),
-		ChromiumVersion: envStr("CHROMIUM_VERSION"),
+		RepoPatches:     envStr("REPO_PATCHES", ""),
+		RepoPrebuilts:   envStr("REPO_PREBUILTS", ""),
+		HostsFile:       envStr("HOSTS_FILE", ""),
+		ChromiumVersion: envStr("CHROMIUM_VERSION", ""),
 	}
 
 	t, err := template.New("stack").Parse(txt)
