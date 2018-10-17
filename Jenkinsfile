@@ -1,5 +1,4 @@
 def RELEASE_DOWNLOAD_ADDRESS = funcs.loadParameter('parameters.groovy', 'RELEASE_DOWNLOAD_ADDRESS', 'http://example.com/')
-def SKIP_CHROMIUM_BUILD = funcs.loadParameter('parameters.groovy', 'SKIP_CHROMIUM_BUILD', false)
 def RELEASE_UPLOAD_ADDRESS = funcs.loadParameter('parameters.groovy', 'RELEASE_UPLOAD_ADDRESS', '')
 def REPO_PATCHES = funcs.loadParameter('parameters.groovy', 'REPO_PATCHES', '')
 def REPO_PREBUILTS = funcs.loadParameter('parameters.groovy', 'REPO_PREBUILTS', '')
@@ -75,9 +74,9 @@ pipeline {
 	parameters {
 		choice choices: DEVICE, description: 'The device model to build for.', name: 'DEVICE'
 		choice choices: ["user", "userdebug"], description: 'The type of build you want.  Userdebug build types allow obtaining root via ADB, and enable ADB by default on boot.  See https://source.android.com/setup/build/building for more information.', name: 'BUILD_TYPE'
+		string defaultValue: "", description: 'Version of Chromium to pin to if requested.', name: 'CHROMIUM_VERSION', trim: true
 		string defaultValue: RELEASE_DOWNLOAD_ADDRESS, description: 'The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  It is mandatory.', name: 'RELEASE_DOWNLOAD_ADDRESS', trim: true
 		string defaultValue: RELEASE_UPLOAD_ADDRESS, description: 'The SSH address, in user@host:/path/to/folder format, to rsync artifacts to, in order to publish them.  Leave empty to skip publishing.', name: 'RELEASE_UPLOAD_ADDRESS', trim: true
-		booleanParam defaultValue: SKIP_CHROMIUM_BUILD, description: 'Skip Chromium build if a build already exists.', name: 'SKIP_CHROMIUM_BUILD'
 		booleanParam defaultValue: false, description: 'Force build even if no new versions exist of components.', name: 'FORCE_BUILD'
 		booleanParam defaultValue: false, description: 'Clean workspace completely before starting.  This will also force a build as a side effect.', name: 'CLEAN_WORKSPACE'
 		string defaultValue: REPO_PATCHES, description: 'An advanced option that allows you to specify a git repo with patches to apply to AOSP build tree.  See https://github.com/RattlesnakeOS/community_patches for more details.', name: 'REPO_PATCHES', trim: true
@@ -236,14 +235,7 @@ pipeline {
 									script {
 										sh """#!/bin/bash -ex
 											go build main.go
-											./main -output stack-builder \\
-												-force-build="${params.FORCE_BUILD}" \\
-												-skip-chromium-build="${params.SKIP_CHROMIUM_BUILD}" \\
-												-release-url="${params.RELEASE_DOWNLOAD_ADDRESS}" \\
-												-build-type="${params.BUILD_TYPE}" \\
-												-repo-patches="${params.REPO_PATCHES}" \\
-												-repo-prebuilts="${params.REPO_PREBUILTS}" \\
-												-hosts-file="${params.HOSTS_FILE}"
+											./main -output stack-builder
 											cat 'stack-builder' | nl -ha -ba -fa | sed 's/^/stack-builder: /'
 										"""
 									}

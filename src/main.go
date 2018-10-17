@@ -7,31 +7,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"text/template"
 )
 
 var output = flag.String("output", "stack-builder", "Output file for stack script.")
-var forceBuild = flag.Bool("force-build", false, "Force build even if no new versions exist of components.")
-var skipChromiumBuild = flag.Bool("skip-chromium-build", false, "Skip Chromium build if Chromium was already built.")
-var releaseUrl = flag.String("release-url", "http://example.com/", "Release URL.")
-var buildType = flag.String("build-type", "user", "Which build type to use.")
-var repoPatches = flag.String("repo-patches", "", "An advanced option that allows you to specify a git repo with patches to apply to AOSP build tree. see https://github.com/RattlesnakeOS/community_patches for more details.")
-var repoPrebuilts = flag.String("repo-prebuilts", "", "An advanced option that allows you to specify a git repo with prebuilt APKs. see https://github.com/RattlesnakeOS/example_prebuilts for more details.")
-var hostsFile = flag.String("hosts-file", "", `An advanced option that allows you to specify a replacement /etc/hosts file to enable global dns adblocking (e.g. https://raw.
-githubusercontent.com/StevenBlack/hosts/master/hosts). note: be careful with this, as you 1) won't get any sort of notification on blocking 2) if you need to unblock something you'll have to rebuild the OS`)
-
-type Data struct {
-	Region            string
-	Version           string
-	PreventShutdown   string
-	Force             string
-	SkipChromiumBuild string
-	Name              string
-	RepoPatches       string
-	RepoPrebuilts     string
-	HostsFile         string
-}
 
 func boolStr(b bool) string {
 	bStr := "false"
@@ -39,6 +20,28 @@ func boolStr(b bool) string {
 		bStr = "true"
 	}
 	return bStr
+}
+
+func _envStr(n string, required bool) string {
+	if value, ok := os.LookupEnv(n); ok {
+		return value
+	} else if required {
+		log.Fatalf("Environment variable %s was required.  Aborting.", n)
+	}
+	return ""
+}
+
+func envStr(n string) string {
+	return _envStr(n, false)
+}
+
+func requireEnvStr(n string) string {
+	return _envStr(n, true)
+}
+
+func envBool(n string) bool {
+	value := envStr(n)
+	return value == "yes" || value == "true" || value == "1"
 }
 
 func replace(text string, original string, substitution string, numReplacements int) (string, error) {
@@ -73,7 +76,7 @@ func main() {
 		{`echo "New build is required"`, `aws_notify "New build is required"`, -1},
 		{
 			`BUILD_TYPE="user"`,
-			fmt.Sprintf(`BUILD_TYPE="%s" # replaced`, *buildType),
+			fmt.Sprintf(`BUILD_TYPE="%s" # replaced`, requireEnvStr("BUILD_TYPE")),
 			-1,
 		},
 		{
@@ -237,14 +240,26 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 		}
 	}
 
+	type Data struct {
+		Region          string
+		Version         string
+		PreventShutdown string
+		Force           string
+		Name            string
+		RepoPatches     string
+		RepoPrebuilts   string
+		HostsFile       string
+		ChromiumVersion string
+	}
+
 	data := Data{
-		Force:             boolStr(*forceBuild),
-		SkipChromiumBuild: boolStr(*skipChromiumBuild),
-		Name:              "rattlesnakeos",
-		Region:            "none",
-		RepoPatches:       *repoPatches,
-		RepoPrebuilts:     *repoPrebuilts,
-		HostsFile:         *hostsFile,
+		Force:           boolStr(envBool("FORCE_BUILD")),
+		Name:            "rattlesnakeos",
+		Region:          "none",
+		RepoPatches:     envStr("REPO_PATCHES"),
+		RepoPrebuilts:   envStr("REPO_PREBUILTS"),
+		HostsFile:       envStr("HOSTS_FILE"),
+		ChromiumVersion: envStr("CHROMIUM_VERSION"),
 	}
 
 	t, err := template.New("stack").Parse(txt)
@@ -478,7 +493,7 @@ full_run() {
 }
 fi
 `
-	s = s + "\nRELEASE_URL=" + *releaseUrl
+	s = s + "\nRELEASE_URL=" + envStr("RELEASE_URL")
 	s = s + "\nfull_run\n"
 	err = ioutil.WriteFile(*output, []byte(s), 0755)
 	if err != nil {
