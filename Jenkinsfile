@@ -234,6 +234,7 @@ pipeline {
 								dir("rattlesnakeos-stack") {
 									script {
 										sh """#!/bin/bash -ex
+											env
 											go build main.go
 											./main -output stack-builder
 											cat 'stack-builder' | nl -ha -ba -fa | sed 's/^/stack-builder: /'
