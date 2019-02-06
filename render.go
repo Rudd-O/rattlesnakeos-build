@@ -312,9 +312,9 @@ sed() {
 	if [ "$1" != "-i" ] ; then
 		/bin/sed "$@" || return $?
 	else
+		shift
 		local fn
 		for fn ; do true ; done
-		shift
 		local bak="$fn".bak
 		/bin/sed --in-place=.bak "$@" || return $?
 		if ! cmp "$fn" "$bak" ; then
