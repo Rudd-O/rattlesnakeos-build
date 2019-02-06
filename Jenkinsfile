@@ -36,9 +36,9 @@ def runStack(currentBuild, actually_build, stage="") {
 			set -o pipefail
 			ret=0
 			BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 bash rattlesnakeos-stack/stack-builder "\$DEVICE" 2>&1 | tee android-build.log || ret=$?
-			echo "===============Trace of Bash commands==============="
-			cat bash.trace
-			echo "=============End trace of Bash commands============="
+			echo "===============Trace of Bash commands===============" >&2
+			cat bash.trace >&2
+			echo "=============End trace of Bash commands=============" >&2
 			exit $ret
 			"""
 			def description = sh (
