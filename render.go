@@ -308,6 +308,25 @@ gitavoidreclone() {
 	fi
 }
 
+sed() {
+	if [ "$1" != "-i" ] ; then
+		/bin/sed "$@" || return $?
+	else
+		local fn
+		for fn ; do true ; done
+		shift
+		local bak="$fn".bak
+		/bin/sed --in-place=.bak "$@" || return $?
+		if ! cmp "$fn" "$bak" ; then
+			echo "Modified file $fn after sed, deleting backup." >&2
+			rm "$bak"
+		else
+			echo "Unmodified file $fn after sed, restoring from backup." >&2
+			mv "$bak" "$fn"
+		fi
+	fi
+}
+
 quiet() {
 	local r=0
 	local cmd="$1"
