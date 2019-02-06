@@ -252,7 +252,7 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 												-device "$DEVICE" \\
 												-build-type "$BUILD_TYPE" \\
 												-chromium-version "$CHROMIUM_VERSION" \\
-												-release-upload-address "$RELEASE_DOWNLOAD_ADDRESS" \\
+												-release-download-address "$RELEASE_DOWNLOAD_ADDRESS" \\
 												$forcebuild \\
 												$hostsfileurl \\
 												$customconfig
