@@ -19,7 +19,7 @@ func replace(text string, original string, substitution string, numReplacements 
 	return newText, nil
 }
 
-func alterTemplate(txt string) string {
+func alterTemplate(txt string) (string, error) {
 	var replacements = []struct {
 		original        string
 		substitution    string
@@ -77,6 +77,12 @@ func alterTemplate(txt string) string {
 		{
 			`cp out/Default/apks/MonochromePublic.apk ${BUILD_DIR}/external/chromium/prebuilt/arm64/`,
 			`aws s3 cp out/Default/apks/MonochromePublic.apk "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk"`,
+			-1,
+		},
+		{
+			`  # upload to s3 for future builds
+  aws s3 cp "${BUILD_DIR}/external/chromium/prebuilt/arm64/MonochromePublic.apk" "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk"`,
+			`  # Suppressed copy to S3 as that has happened already`,
 			-1,
 		},
 		{
@@ -202,7 +208,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 	for _, r := range replacements {
 		var err error
 		if txt, err = replace(txt, r.original, r.substitution, r.numReplacements); err != nil {
-			log.Fatalf("%s", err)
+			return "", err
 		}
 	}
 
@@ -425,7 +431,7 @@ fi
 full_run
 `
 
-	return txt
+	return txt, nil
 }
 
 var output = flag.String("output", "stack-builder", "Output file for stack script.")
@@ -486,7 +492,10 @@ func main() {
 		ReleaseDownloadAddress: *releaseDownloadAddress,
 	}
 
-	modded := alterTemplate(templates.BuildTemplate)
+	modded, err := alterTemplate(templates.BuildTemplate)
+if err != nil {
+panic(err)
+}
 
 	renderedBuildScript, err := stack.RenderTemplate(modded, config)
 	if err != nil {
