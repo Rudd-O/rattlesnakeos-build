@@ -317,12 +317,16 @@ sed() {
 		for fn ; do true ; done
 		local bak="$fn".bak
 		/bin/sed --in-place=.bak "$@" || return $?
-		if ! cmp "$fn" "$bak" ; then
-			echo "Modified file $fn after sed, deleting backup." >&2
-			rm "$bak"
+		if test -f "$bak" ; then
+			if ! cmp "$fn" "$bak" >/dev/null 2>&1 ; then
+				echo "sed: changed: $@" >&2
+				rm "$bak"
+			else
+				echo "sed: unchanged: $@" >&2
+				mv "$bak" "$fn"
+			fi
 		else
-			echo "Unmodified file $fn after sed, restoring from backup." >&2
-			mv "$bak" "$fn"
+			echo "sed: no backup: $@" >&2
 		fi
 	fi
 }
