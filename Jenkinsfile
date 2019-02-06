@@ -192,6 +192,7 @@ pipeline {
 func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 	return renderTemplate(templateStr, params)
 }'''
+								}
 							}
 						}
 						stage("Markers") {
@@ -230,7 +231,6 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 						}
 						stage("Stack") {
 							steps {
-								}
 								dir("rattlesnakeos-stack") {
 									script {
 										sh '''#!/bin/bash -ex
