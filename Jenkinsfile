@@ -137,10 +137,10 @@ pipeline {
 							}
 							println "RattlesnakeOS Git hash is reported as ${env.RATTLESNAKEOS_GIT_HASH}"
 							dir("rattlesnakeos-stack") {
-								sh 'ln -sf . src'
+								sh 'rm -f src ; ln -sf . src'
 							}
 							dir("rattlesnakeos-stack/github.com/dan-v") {
-								sh 'ln -sf ../../ rattlesnakeos-stack'
+								sh 'rm -f rattlesnakeos-stack ; ln -sf ../../ rattlesnakeos-stack'
 							}
 							dir("rattlesnakeos-stack/stack") {
 								writeFile name: "exports.go", content: '''package stack
