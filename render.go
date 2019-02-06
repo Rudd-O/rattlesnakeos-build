@@ -409,7 +409,6 @@ full_run() {
   log_header ${FUNCNAME}
 
   if [ "$STAGE" != "" ] ; then
-    echo =============== Now in stage "$STAGE" =============== >&2
     reload_latest_versions
     if [ "$STAGE" == "release" ] ; then
       "$STAGE" "${DEVICE}"
