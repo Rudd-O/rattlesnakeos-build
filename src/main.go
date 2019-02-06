@@ -37,7 +37,7 @@ func envBool(n string) bool {
 func replace(text string, original string, substitution string, numReplacements int) (string, error) {
 	newText := strings.Replace(text, original, substitution, numReplacements)
 	if text == newText {
-		return "", fmt.Errorf("The replacement of %s for %s produced no changes", original, substitution)
+		return "", fmt.Errorf("The replacement of\n%s\n\nfor\n%s\nproduced no changes", original, substitution)
 	}
 	return newText, nil
 }
@@ -67,7 +67,10 @@ func main() {
 		{`$(curl -s http://169.254.169.254/latest/meta-data/instance-type)`, "none", -1},
 		{`$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | awk -F\" '/region/ {print $4}')`, "none", -1},
 		{`$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)`, "none", -1},
-		{`echo "No build is required, but FORCE_BUILD=true"`, `aws_notify "No build is required, but FORCE_BUILD=true"`, -1},
+		{
+			`message="No build is required, but FORCE_BUILD=true"
+      echo "$message"
+`, `aws_notify "No build is required, but FORCE_BUILD=true"`, -1},
 		{`echo "New build is required"`, `aws_notify "New build is required"`, -1},
 		{
 			`BUILD_TYPE="user"`,
@@ -119,8 +122,8 @@ func main() {
 			-1,
 		},
 		{
-			`retry git clone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"`,
-			`gitavoidreclone "${KERNEL_SOURCE_URL}" "${MARLIN_KERNEL_SOURCE_DIR}"`,
+			`retry git clone`,
+			`retry gitavoidreclone`,
 			-1,
 		},
 		{
@@ -172,12 +175,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			-1,
 		},
 		{
-			`git clone $REPO_PATCHES ${patches_dir}`,
-			`gitavoidreclone "$REPO_PATCHES" ${patches_dir}`,
-			-1,
-		},
-		{
-			`timeout 30m "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --debugfs --yes --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${BUILD_DIR}/vendor/android-prepare-vendor"`,
+			`timeout 30m "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --debugfs --keep --yes --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${BUILD_DIR}/vendor/android-prepare-vendor"`,
 			`mkdir -p "${HOME}/vendor-in"
   local flag="${HOME}/vendor-in/.${DEVICE}-$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")"
   if test -f "${flag}" ; then
@@ -189,31 +187,22 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			-1,
 		},
 		{
-			`  mkdir --parents "${BUILD_DIR}/vendor/google_devices" || true
+			`mkdir --parents "${BUILD_DIR}/vendor/google_devices" || true
   rm -rf "${BUILD_DIR}/vendor/google_devices/$DEVICE" || true
   mv "${BUILD_DIR}/vendor/android-prepare-vendor/${DEVICE}/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/${DEVICE}" "${BUILD_DIR}/vendor/google_devices"
 
   # smaller devices need big brother vendor files
-  if [ "$DEVICE" == 'sailfish' ]; then
-    rm -rf "${BUILD_DIR}/vendor/google_devices/marlin" || true
-    mv "${BUILD_DIR}/vendor/android-prepare-vendor/sailfish/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/marlin" "${BUILD_DIR}/vendor/google_devices"
-  fi
-  if [ "$DEVICE" == 'walleye' ]; then
-    rm -rf "${BUILD_DIR}/vendor/google_devices/muskie" || true
-    mv "${BUILD_DIR}/vendor/android-prepare-vendor/walleye/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/muskie" "${BUILD_DIR}/vendor/google_devices"
-  fi
-`,
-			`  mkdir --parents "${BUILD_DIR}/vendor/google_devices"
+  if [ "$DEVICE" != "$DEVICE_FAMILY" ]; then
+    rm -rf "${BUILD_DIR}/vendor/google_devices/$DEVICE_FAMILY" || true
+    mv "${BUILD_DIR}/vendor/android-prepare-vendor/$DEVICE/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/$DEVICE_FAMILY" "${BUILD_DIR}/vendor/google_devices"
+  fi`,
+			`mkdir --parents "${BUILD_DIR}/vendor/google_devices"
   rsync -avHAX --inplace --delete --delete-excluded "${HOME}/vendor-in/${DEVICE}/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/${DEVICE}/" "${BUILD_DIR}/vendor/google_devices/${DEVICE}/"
 
   # smaller devices need big brother vendor files
-  if [ "$DEVICE" == 'sailfish' ]; then
-    rsync -avHAX --inplace --delete --delete-excluded "${HOME}/vendor-in/sailfish/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/marlin/" "${BUILD_DIR}/vendor/google_devices/marlin/"
-  fi
-  if [ "$DEVICE" == 'walleye' ]; then
-    rsync -avHAX --inplace --delete --delete-excluded "${HOME}/vendor-in/walleye/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/marlin/" "${BUILD_DIR}/vendor/google_devices/muskie/"
-  fi
-`,
+  if [ "$DEVICE" != '$DEVICE_FAMILY' ]; then
+    rsync -avHAX --inplace --delete --delete-excluded "${HOME}/vendor-in/$DEVICE/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/$DEVICE_FAMILY/" "${BUILD_DIR}/vendor/google_devices/$DEVICE_FAMILY/"
+  fi`,
 			-1,
 		},
 		{
@@ -240,26 +229,31 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 	}
 
 	type Data struct {
-		EncryptedKeys   string
-		Region          string
-		Version         string
-		PreventShutdown string
-		Force           string
-		Name            string
-		RepoPatches     string
-		RepoPrebuilts   string
-		HostsFile       string
-		ChromiumVersion string
+		EncryptedKeys          string
+		Region                 string
+		Version                string
+		PreventShutdown        string
+		IgnoreVersionChecks    string
+		Name                   string
+		RepoPatches            string
+		RepoPrebuilts          string
+		HostsFile              string
+		ChromiumVersion        string
+		CustomManifestRemotes  bool
+		CustomManifestProjects bool
+		CustomPatches          bool
+		CustomScripts          bool
+		CustomPrebuilts        bool
 	}
 
 	data := Data{
-		Force:           boolStr(envBool("FORCE_BUILD")),
-		Name:            "rattlesnakeos",
-		Region:          "none",
-		RepoPatches:     envStr("REPO_PATCHES", ""),
-		RepoPrebuilts:   envStr("REPO_PREBUILTS", ""),
-		HostsFile:       envStr("HOSTS_FILE", ""),
-		ChromiumVersion: envStr("CHROMIUM_VERSION", ""),
+		IgnoreVersionChecks: boolStr(envBool("FORCE_BUILD")),
+		Name:                "rattlesnakeos",
+		Region:              "none",
+		RepoPatches:         envStr("REPO_PATCHES", ""),
+		RepoPrebuilts:       envStr("REPO_PREBUILTS", ""),
+		HostsFile:           envStr("HOSTS_FILE", ""),
+		ChromiumVersion:     envStr("CHROMIUM_VERSION", ""),
 	}
 
 	t, err := template.New("stack").Parse(txt)
