@@ -220,7 +220,7 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 								timeout(time: 10, unit: 'MINUTES') {
 									retry(2) {
 										script {
-											funcs.aptInstall(["golang", "curl"])
+											funcs.aptInstall(["golang", "curl", "fuseext2"])
 										}
 									}
 								}
