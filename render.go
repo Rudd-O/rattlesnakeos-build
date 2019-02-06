@@ -216,6 +216,10 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 	txt = txt + `# Beginning of outright overridden functions
 
 aws() {
+  quiet _aws "$@"
+}
+
+_aws() {
   func="$1"
   cmd="$2"
   in="$3"
