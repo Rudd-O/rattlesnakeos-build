@@ -35,7 +35,9 @@ def runStack(currentBuild, actually_build, stage="") {
 			export STAGE=${stage}
 			set -o pipefail
 			ret=0
-			BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 bash rattlesnakeos-stack/stack-builder "\$DEVICE" 2>&1 | tee android-build.log || ret=$?
+			# We disable build number to prevent unnecessary regeneration of code.
+			# Jenkins manages its build number separately from the Android build.
+			BUILD_NUMBER= BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 bash rattlesnakeos-stack/stack-builder "\$DEVICE" 2>&1 | tee android-build.log || ret=$?
 			echo "===============Trace of Bash commands===============" >&2
 			cat bash.trace >&2
 			echo "=============End trace of Bash commands=============" >&2
