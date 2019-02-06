@@ -1,9 +1,7 @@
 def RELEASE_DOWNLOAD_ADDRESS = funcs.loadParameter('parameters.groovy', 'RELEASE_DOWNLOAD_ADDRESS', 'http://example.com/')
 def RELEASE_UPLOAD_ADDRESS = funcs.loadParameter('parameters.groovy', 'RELEASE_UPLOAD_ADDRESS', '')
-def REPO_PATCHES = funcs.loadParameter('parameters.groovy', 'REPO_PATCHES', '')
-def REPO_PREBUILTS = funcs.loadParameter('parameters.groovy', 'REPO_PREBUILTS', '')
+def CUSTOM_CONFIG = funcs.loadParameter('parameters.groovy', 'CUSTOM_CONFIG', '')
 def HOSTS_FILE = funcs.loadParameter('parameters.groovy', 'HOSTS_FILE', '')
-
 
 def ALL_DEVICES = ["marlin (Pixel XL)", "angler (Nexus 6P)", "bullhead (Nexus 5X)", "sailfish (Pixel)", "taimen (Pixel 2 XL)", "walleye (Pixel 2)", "hikey (HiKey)", "hikey960 (HiKey 960)"]
 def DEVICE = funcs.loadParameter('parameters.groovy', 'DEVICE', "")
@@ -79,8 +77,7 @@ pipeline {
 		string defaultValue: RELEASE_UPLOAD_ADDRESS, description: 'The SSH address, in user@host:/path/to/folder format, to rsync artifacts to, in order to publish them.  Leave empty to skip publishing.', name: 'RELEASE_UPLOAD_ADDRESS', trim: true
 		booleanParam defaultValue: false, description: 'Force build even if no new versions exist of components.', name: 'FORCE_BUILD'
 		booleanParam defaultValue: false, description: 'Clean workspace completely before starting.  This will also force a build as a side effect.', name: 'CLEAN_WORKSPACE'
-		string defaultValue: REPO_PATCHES, description: 'An advanced option that allows you to specify a git repo with patches to apply to AOSP build tree.  See https://github.com/RattlesnakeOS/community_patches for more details.', name: 'REPO_PATCHES', trim: true
-		string defaultValue: REPO_PREBUILTS, description: 'An advanced option that allows you to specify a git repo with prebuilt APKs.  See https://github.com/RattlesnakeOS/example_prebuilts for more details.', name: 'REPO_PREBUILTS', trim: true
+		text defaultValue: CUSTOM_CONFIG, description: 'An advanced option that allows you to specify customizations as explained in https://github.com/dan-v/rattlesnakos-stack/README.md .', name: 'CUSTOM_CONFIG'
 		string defaultValue: HOSTS_FILE, description: 'An advanced option that allows you to specify a replacement /etc/hosts file to enable global dns adblocking (e.g. https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts).  Note: be careful with this, as you 1) will not get any sort of notification on blocking 2) if you need to unblock something you will have to rebuild the OS', name: 'HOSTS_FILE', trim: true
 	}
 
@@ -139,6 +136,19 @@ pipeline {
 								).trim()
 							}
 							println "RattlesnakeOS Git hash is reported as ${env.RATTLESNAKEOS_GIT_HASH}"
+							dir("rattlesnakeos-stack") {
+								sh 'ln -sf . src'
+							}
+							dir("rattlesnakeos-stack/github.com/dan-v") {
+								sh 'ln -sf ../../ rattlesnakeos-stack'
+							}
+							dir("rattlesnakeos-stack/stack") {
+								writeFile("exports.go", '''package stack
+
+func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
+	return renderTemplate(templateStr, params)
+}''')
+							}
 						}
 					}
 				}
@@ -147,12 +157,6 @@ pipeline {
 						dir("../../../keys/") {
 							stash includes: '**', name: 'keys'
 						}
-						sh '''
-							set -ex
-							mv rattlesnakeos-stack/templates/build_template.go .
-							rm -f rattlesnakeos-stack/templates/*
-							mv build_template.go rattlesnakeos-stack/templates/
-						'''
 						stash includes: 'rattlesnakeos-stack/**', name: 'stack'
 						dir("src") {
 							stash includes: '**', name: 'code'
@@ -233,12 +237,34 @@ pipeline {
 							steps {
 								dir("rattlesnakeos-stack") {
 									script {
-										sh """#!/bin/bash -ex
+										sh '''#!/bin/bash -ex
 											env
-											go build main.go
-											./main -output stack-builder
-											cat 'stack-builder' | nl -ha -ba -fa | sed 's/^/stack-builder: /'
-										"""
+		choice choices: DEVICE, description: 'The device model to build for.', name: 'DEVICE'
+		choice choices: ["user", "userdebug"], description: 'The type of build you want.  Userdebug build types allow obtaining root via ADB, and enable ADB by default on boot.  See https://source.android.com/setup/build/building for more information.', name: 'BUILD_TYPE'
+		string defaultValue: "", description: 'Version of Chromium to pin to if requested.', name: 'CHROMIUM_VERSION', trim: true
+		string defaultValue: RELEASE_DOWNLOAD_ADDRESS, description: 'The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  It is mandatory.', name: 'RELEASE_DOWNLOAD_ADDRESS', trim: true
+		string defaultValue: RELEASE_UPLOAD_ADDRESS, description: 'The SSH address, in user@host:/path/to/folder format, to rsync artifacts to, in order to publish them.  Leave empty to skip publishing.', name: 'RELEASE_UPLOAD_ADDRESS', trim: true
+		booleanParam defaultValue: false, description: 'Force build even if no new versions exist of components.', name: 'FORCE_BUILD'
+		booleanParam defaultValue: false, description: 'Clean workspace completely before starting.  This will also force a build as a side effect.', name: 'CLEAN_WORKSPACE'
+		custom_config
+		string defaultValue: HOSTS_FILE, description: 'An advanced option that allows you to specify a replacement /etc/hosts file to enable global dns adblocking (e.g. https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts).  Note: be careful with this, as you 1) will not get any sort of notification on blocking 2) if you need to unblock something you will have to rebuild the OS', name: 'HOSTS_FILE', trim: true
+											forcebuild=
+											if [ "$FORCE_BUILD" == "true" ] ; then
+												forcebuild=-force-build
+											fi
+											customconfig=
+											if [ "$CUSTOM_CONFIG" != "" ] ; then
+												echo "$CUSTOM_CONFIG" > custom-config.json
+												customconfig="-custom-config custom-config.json"
+											fi
+											GOPATH="$PWD" go run ../render.go -output ../stack-builder \\
+												-device "$DEVICE" \\
+												-build-type "$BUILD_TYPE" \\
+												-chromium-version "$CHROMIUM_VERSION" \\
+												-release-upload-address "$RELEASE_DOWNLOAD_ADDRESS" \\
+												$forcebuild \\
+												$customconfig
+										'''
 									}
 								}
 							}

@@ -1,38 +1,15 @@
 package main
 
 import (
-	"./templates"
-	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
+	"stack"
 	"strings"
-	"text/template"
+	"templates"
 )
-
-var output = flag.String("output", "stack-builder", "Output file for stack script.")
-
-func boolStr(b bool) string {
-	bStr := "false"
-	if b {
-		bStr = "true"
-	}
-	return bStr
-}
-
-func envStr(n string, d string) string {
-	if value, ok := os.LookupEnv(n); ok {
-		return value
-	}
-	return d
-}
-
-func envBool(n string) bool {
-	value := envStr(n, "")
-	return value == "yes" || value == "true" || value == "1"
-}
 
 func replace(text string, original string, substitution string, numReplacements int) (string, error) {
 	newText := strings.Replace(text, original, substitution, numReplacements)
@@ -42,21 +19,15 @@ func replace(text string, original string, substitution string, numReplacements 
 	return newText, nil
 }
 
-func main() {
-	flag.Parse()
-	txt := templates.BuildTemplate
-	var err error
-
+func alterTemplate(txt string) string {
 	var replacements = []struct {
 		original        string
 		substitution    string
 		numReplacements int
 	}{
-		{"<%", "{{", -1},
-		{"%>", "}}", -1},
 		{
 			`"https://${AWS_RELEASE_BUCKET}.s3.amazonaws.com"`,
-			`"` + envStr("RELEASE_DOWNLOAD_ADDRESS", "") + `"`,
+			`"<% .ReleaseDownloadAddress %>"`,
 			-1,
 		},
 		{
@@ -70,11 +41,17 @@ func main() {
 		{
 			`message="No build is required, but FORCE_BUILD=true"
       echo "$message"
-`, `aws_notify "No build is required, but FORCE_BUILD=true"`, -1},
+`, `aws_notify "No build is required, but FORCE_BUILD=true"`, -1,
+		},
+		{
+			`message="No build is required, but IGNORE_VERSION_CHECKS=true"
+      echo "$message"
+`, `aws_notify "No build is required, but IGNORE_VERSION_CHECKS=true"`, -1,
+		},
 		{`echo "New build is required"`, `aws_notify "New build is required"`, -1},
 		{
 			`BUILD_TYPE="user"`,
-			fmt.Sprintf(`BUILD_TYPE="%s" # replaced`, envStr("BUILD_TYPE", "user")),
+			`BUILD_TYPE="<% .BuildType %>"`,
 			-1,
 		},
 		{
@@ -223,58 +200,14 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 	}
 
 	for _, r := range replacements {
+		var err error
 		if txt, err = replace(txt, r.original, r.substitution, r.numReplacements); err != nil {
 			log.Fatalf("%s", err)
 		}
 	}
 
-	type Data struct {
-		EncryptedKeys          string
-		Region                 string
-		Version                string
-		PreventShutdown        string
-		IgnoreVersionChecks    string
-		Name                   string
-		RepoPatches            string
-		RepoPrebuilts          string
-		HostsFile              string
-		ChromiumVersion        string
-		CustomManifestRemotes  bool
-		CustomManifestProjects bool
-		CustomPatches          bool
-		CustomScripts          bool
-		CustomPrebuilts        bool
-	}
-
-	data := Data{
-		IgnoreVersionChecks: boolStr(envBool("FORCE_BUILD")),
-		Name:                "rattlesnakeos",
-		Region:              "none",
-		RepoPatches:         envStr("REPO_PATCHES", ""),
-		RepoPrebuilts:       envStr("REPO_PREBUILTS", ""),
-		HostsFile:           envStr("HOSTS_FILE", ""),
-		ChromiumVersion:     envStr("CHROMIUM_VERSION", ""),
-	}
-
-	t, err := template.New("stack").Parse(txt)
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-
-	var tpl bytes.Buffer
-	if err = t.Execute(&tpl, data); err != nil {
-		log.Fatalf("%s", err)
-	}
-
-	s := strings.TrimSpace(tpl.String())
-	if strings.Contains(s, "<%") {
-		s = strings.Split(tpl.String(), "<%")[0]
-		s = s + "<%" + strings.Split(tpl.String(), "<%")[1]
-		log.Fatalf("The resultant string did not render properly.\n\n %s", s)
-	}
-
-	s = strings.TrimSuffix(tpl.String(), "full_run\n")
-	s = s + `# Beginning of outright overridden functions
+	txt = strings.TrimSuffix(txt, "full_run\n")
+	txt = txt + `# Beginning of outright overridden functions
 
 aws() {
   func="$1"
@@ -491,8 +424,90 @@ fi
 
 full_run
 `
-	err = ioutil.WriteFile(*output, []byte(s), 0755)
+
+	return txt
+}
+
+var output = flag.String("output", "stack-builder", "Output file for stack script.")
+var device = flag.String("device", "marlin", "build the stack for this device")
+var releaseDownloadAddress = flag.String("release-download-address", "", "URL where the Android platform will look for published updates")
+var buildType = flag.String("build-type", "user", "build type (user or userdebug)")
+var chromiumVersion = flag.String("chromium-version", "", "build with a specific version of Chromium")
+var hostsFile = flag.String("hosts-file", "", "build with a specific version of Chromium")
+var forceBuild = flag.Bool("force-build", false, "force build even if already built")
+var customConfig = flag.String("custom-config", "", "path to a JSON file that has customizations (patches, script, prebuilts, et cetera) in the same AWSStackConfig structure documented in https://github.com/dan-v/rattlesnakeos-stack/README.md -- only the Custom structure members are respected")
+
+type myStackConfig struct {
+	*stack.AWSStackConfig
+	BuildType              string
+	ReleaseDownloadAddress string
+}
+
+func main() {
+	flag.Parse()
+	customizations := stack.AWSStackConfig{}
+	if *customConfig != "" {
+		contents, err := ioutil.ReadFile(*customConfig)
+		if err != nil {
+			panic(err)
+		}
+		err = json.Unmarshal(contents, &customizations)
+		if err != nil {
+			panic(err)
+		}
+	}
+	ignored := "ignored"
+	preconfig := &stack.AWSStackConfig{
+		Name:                   "rattlesnakeos",
+		Region:                 ignored,
+		AMI:                    ignored,
+		Email:                  ignored,
+		InstanceType:           ignored,
+		InstanceRegions:        ignored,
+		SkipPrice:              ignored,
+		MaxPrice:               ignored,
+		Version:                ignored,
+		SSHKey:                 ignored,
+		Schedule:               ignored,
+		Device:                 *device,
+		ChromiumVersion:        *chromiumVersion,
+		IgnoreVersionChecks:    *forceBuild,
+		HostsFile:              *hostsFile,
+		EncryptedKeys:          false,
+		CustomPatches:          customizations.CustomPatches,
+		CustomScripts:          customizations.CustomScripts,
+		CustomPrebuilts:        customizations.CustomPrebuilts,
+		CustomManifestRemotes:  customizations.CustomManifestRemotes,
+		CustomManifestProjects: customizations.CustomManifestProjects,
+	}
+	config := &myStackConfig{
+		AWSStackConfig:         preconfig,
+		BuildType:              *buildType,
+		ReleaseDownloadAddress: *releaseDownloadAddress,
+	}
+
+	modded := alterTemplate(templates.BuildTemplate)
+
+	renderedBuildScript, err := stack.RenderTemplate(modded, config)
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Fatalf("Failed to render build script: %v", err)
+	}
+	log.Printf("Script that will run:\n==================================================%s\n==================================================", string(renderedBuildScript))
+
+	cmd := []string{*output, *device}
+	if *forceBuild {
+		cmd = append(cmd, "true")
+	}
+	configStr, err := json.MarshalIndent(config, "", "    ")
+	if err != nil {
+		panic(err)
+	}
+
+	log.Printf("Settings that will be used:\n%s", string(configStr))
+	log.Printf("Command prefix that will run: %s", cmd)
+
+	err = ioutil.WriteFile(*output, renderedBuildScript, 0755)
+	if err != nil {
+		panic(err)
 	}
 }
