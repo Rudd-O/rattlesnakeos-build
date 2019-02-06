@@ -322,7 +322,6 @@ sed() {
 				echo "sed: changed: $@" >&2
 				rm "$bak"
 			else
-				echo "sed: unchanged: $@" >&2
 				mv "$bak" "$fn"
 			fi
 		else
