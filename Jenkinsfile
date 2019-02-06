@@ -143,7 +143,7 @@ pipeline {
 								sh 'ln -sf ../../ rattlesnakeos-stack'
 							}
 							dir("rattlesnakeos-stack/stack") {
-								writeFile("exports.go", '''package stack
+								writeFile name: "exports.go", content: '''package stack
 
 func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 	return renderTemplate(templateStr, params)
