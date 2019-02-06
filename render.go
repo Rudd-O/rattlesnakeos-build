@@ -164,7 +164,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
   if test -f "${flag}" ; then
     true
   else
-    "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --fuse-ext2 --yes --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${HOME}/vendor-in"
+    "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --debugfs --yes --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${HOME}/vendor-in"
     touch "${flag}"
   fi`,
 			-1,
