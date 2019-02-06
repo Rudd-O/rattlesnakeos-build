@@ -33,9 +33,13 @@ def runStack(currentBuild, actually_build, stage="") {
 			mkdir -p "\$TMPDIR"
 			export DEVICE=\$(echo "${params.DEVICE}" | cut -d ' ' -f 1)
 			export STAGE=${stage}
-			set -x
 			set -o pipefail
-			ONLY_REPORT=${onlyReport} ionice -c3 bash -x rattlesnakeos-stack/stack-builder "\$DEVICE" 2>&1 | tee android-build.log
+			ret=0
+			BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 bash rattlesnakeos-stack/stack-builder "\$DEVICE" 2>&1 | tee android-build.log || ret=$?
+			echo "===============Trace of Bash commands==============="
+			cat bash.trace
+			echo "=============End trace of Bash commands============="
+			exit $ret
 			"""
 			def description = sh (
 				script: grepper,
@@ -233,7 +237,7 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 							steps {
 								dir("rattlesnakeos-stack") {
 									script {
-										sh '''#!/bin/bash -ex
+										sh '''#!/bin/bash -e
 											env
 											forcebuild=
 											if [ "$FORCE_BUILD" == "true" ] ; then

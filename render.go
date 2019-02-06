@@ -26,6 +26,18 @@ func alterTemplate(txt string) (string, error) {
 		numReplacements int
 	}{
 		{
+			`#!/bin/bash`,
+			`#!/bin/bash
+
+if [ -n "$BASH_TRACE" ] ; then
+	exec 19> "$BASH_TRACE"
+	BASH_XTRACEFD=19
+fi
+set -x
+`,
+			-1,
+		},
+		{
 			`"https://${AWS_RELEASE_BUCKET}.s3.amazonaws.com"`,
 			`"<% .ReleaseDownloadAddress %>"`,
 			-1,
