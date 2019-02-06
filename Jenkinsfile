@@ -136,19 +136,6 @@ pipeline {
 								).trim()
 							}
 							println "RattlesnakeOS Git hash is reported as ${env.RATTLESNAKEOS_GIT_HASH}"
-							dir("rattlesnakeos-stack") {
-								sh 'rm -f src ; ln -sf . src'
-							}
-							dir("rattlesnakeos-stack/github.com/dan-v") {
-								sh 'rm -f rattlesnakeos-stack ; ln -sf ../../ rattlesnakeos-stack'
-							}
-							dir("rattlesnakeos-stack/stack") {
-								writeFile file: "exports.go", text: '''package stack
-
-func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
-	return renderTemplate(templateStr, params)
-}'''
-							}
 						}
 					}
 				}
@@ -235,6 +222,22 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 						}
 						stage("Stack") {
 							steps {
+								dir("rattlesnakeos-stack") {
+									sh 'git clean -fxd'
+								}
+								dir("rattlesnakeos-stack") {
+									sh 'ln -sf . src'
+								}
+								dir("rattlesnakeos-stack/github.com/dan-v") {
+									sh 'ln -sf ../../ rattlesnakeos-stack'
+								}
+								dir("rattlesnakeos-stack/stack") {
+									writeFile file: "exports.go", text: '''package stack
+
+func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
+	return renderTemplate(templateStr, params)
+}'''
+								}
 								dir("rattlesnakeos-stack") {
 									script {
 										sh '''#!/bin/bash -ex
