@@ -70,7 +70,7 @@ pipeline {
 
 	triggers {
 		pollSCM('* * * * *')
-		cron('H 0,6,12,18 * * *')
+		cron('H H/3 5,6,7,8,9 * *')
 	}
 
 	options {
