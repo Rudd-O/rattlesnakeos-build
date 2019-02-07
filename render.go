@@ -80,7 +80,7 @@ set -x
 		{
 			`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true`,
 			`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true
-  quiet gitcleansources`,
+  gitcleansources`,
 			-1,
 		},
 		{
@@ -109,11 +109,18 @@ set -x
 		},
 		{`fetch --nohooks android`, `test -f .gclient || fetch --nohooks android`, -1},
 		{
-			"yes | gclient sync --with_branch_heads --jobs 32 -RDf",
-			`quiet gitcleansources
+			`yes | gclient sync --with_branch_heads --jobs 32 -RDf
+
+  # cleanup any files in tree not part of this revision
+  git clean -dff
+
+  # reset any modifications
+  git checkout -- .`,
+			`gitcleansources
   yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
 			-1,
 		},
+		{`gn gen out/Default`, `gitrestoretimestamps`, -1},
 		{
 			`patch_launcher
 }`,
@@ -364,25 +371,26 @@ gitcleansource() {
 	local timestamp
 	rm -f .git/timestampsums
 	while read type filename ; do
-		if [ "$type" == "M" -o "$type" == "??" -o --type == "!!" ] ; then
-			if test -f "$filename" ] ; then
-				sum=$(md5sum "$filename" | awk ' { print $1 } ')
-				timestamp=$(stat -c %y "$filename")
-			elif test -e "$filename" ; then
-				sum="notafilenomd5sum"
-				timestamp=$(stat -c %y "$filename")
-			else
-				sum="deletednomd5sum"
-				timestamp="no time stamp"
-			fi
-			echo "$sum $timestamp $filename" >> .git/timestampsums
-		fi
+                if [ -f "$filename" ] ; then
+                        sum=$(md5sum "$filename" | awk ' { print $1 } ')
+                        timestamp=$(stat -c %y "$filename")
+                elif [ -e "$filename" ] ; then
+                        sum="notafilenomd5sum"
+                        timestamp=$(stat -c %y "$filename")
+                else
+                        sum="deletednomd5sum"
+                        timestamp="no time stamp"
+                fi
+                echo "$sum $timestamp $filename" >> .git/timestampsums
 	done < <(git status --ignored --porcelain)
 	if [ -f .git/timestampsums ] ; then
 		echo "$PWD: has modifications" >&2
+		cat .git/timestampsums >&2
 		git clean -fxd || return $?
 		git reset --hard || return $?
-	fi
+	else
+                echo "$PWD: does not have modifications" >&2
+        fi
 }
 
 gitrestoretimestamp() {
@@ -394,23 +402,31 @@ gitrestoretimestamp() {
 	local timestamp
 	local actualsum
 	local actualtimestamp
-	test -f .git/timestampsums || return 0
+	test -f .git/timestampsums || {
+                echo "time restore $PWD: nothing to restore" >&2
+                return 0
+        }
 	while read sum date time timezone filename ; do
 		# If the file does not exist or is not a file,
-		# don't bother restoring the time zone.
-		test -f "$filename" || continue
+		# don't bother restoring the timestamp
+		test -f "$filename" || {
+                    echo "time restore $PWD: $filename does not exist" >&2
+                    continue
+                }
 		timestamp="$date $time $timezone"
 		actualsum=$(md5sum "$filename" | awk ' { print $1 } ')
 		actualtimestamp=$(stat -c %y "$filename")
 		# If the file has changed, it has earned its mtime.
 		if [ "$sum" != "$actualsum" ] ; then continue ; fi
+		echo "time restore $PWD: $filename sum differs" >&2
 		# If the file says "no time stamp", the file did not exist,
 		# cannot restore timestamp.
 		if [ "$timestamp" == "no time stamp" ] ; then continue ; fi
+		echo "time restore $PWD: $filename has no file stamp" >&2
 		# If the file has the same time stamp as before,
 		# don't bother restoring it.
 		if [ "$timestamp" == "$actualtimestamp" ] ; then continue ; fi
-		echo "$PWD: $filename unchanged, mtime differs, restoring"
+		echo "time restore $PWD: $filename unchanged, mtime differs, restoring" >&2
 		touch -d "$timestamp" "$filename"
 	done < <(cat .git/timestampsums)
 }
