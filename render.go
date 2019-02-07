@@ -53,12 +53,14 @@ set -x
 		{
 			`message="No build is required, but FORCE_BUILD=true"
       echo "$message"
-`, `aws_notify "No build is required, but FORCE_BUILD=true"`, -1,
+`, `aws_notify "No build is required, but FORCE_BUILD=true"
+`, -1,
 		},
 		{
 			`message="No build is required, but IGNORE_VERSION_CHECKS=true"
       echo "$message"
-`, `aws_notify "No build is required, but IGNORE_VERSION_CHECKS=true"`, -1,
+`, `aws_notify "No build is required, but IGNORE_VERSION_CHECKS=true"
+`, -1,
 		},
 		{`echo "New build is required"`, `aws_notify "New build is required"`, -1},
 		{
