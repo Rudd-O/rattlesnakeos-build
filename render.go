@@ -483,6 +483,11 @@ initial_key_setup() {
 
 gen_keys() {
   log_header "${FUNCNAME} (overridden)"
+
+  pushd ${BUILD_DIR}
+  gitrestoretimestamps
+  popd
+
   if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
     gen_verity_key "${DEVICE}"
   fi
