@@ -367,6 +367,13 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 								}
 							}
 						}
+						stage('aws_upload') {
+							steps {
+								timeout(time: 30, unit: 'MINUTES') {
+									runStack(currentBuild, true, "aws_upload")
+								}
+							}
+						}
 						stage('checkpoint_versions') {
 							steps {
 								timeout(time: 5, unit: 'MINUTES') {
