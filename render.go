@@ -135,7 +135,9 @@ set -x
   # changes, but those files are at the very bottom of the tree
   # of dependencies, so they cause ninja to do a lot of thinking
   # and rebuilding.
+  pushd ${BUILD_DIR}
   gitrestoretimestamps
+  popd
 }`,
 			-1,
 		},
