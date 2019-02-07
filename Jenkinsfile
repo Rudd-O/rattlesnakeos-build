@@ -362,7 +362,7 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 						}
 						stage('release') {
 							steps {
-								timeout(time: 15, unit: 'MINUTES') {
+								timeout(time: 30, unit: 'MINUTES') {
 									runStack(currentBuild, true, "release")
 								}
 							}
