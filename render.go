@@ -84,8 +84,11 @@ set -x
 			-1,
 		},
 		{
-			`mkdir -p ${BUILD_DIR}/external/chromium/prebuilt/arm64`,
-			``,
+			`# copy to build tree
+  mkdir -p ${BUILD_DIR}/external/chromium/prebuilt/arm64`,
+			`# do not copy to build tree - later stage does it on demand
+  # we just copy it to S3 so that the later stage can obtain it
+`,
 			-1,
 		},
 		{
@@ -96,7 +99,7 @@ set -x
 		{
 			`  # upload to s3 for future builds
   aws s3 cp "${BUILD_DIR}/external/chromium/prebuilt/arm64/MonochromePublic.apk" "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk"`,
-			`  # Suppressed copy to S3 as that has happened already`,
+			`  # Suppressed copy to S3 as that has happened already - now we just save the built revision to S3`,
 			-1,
 		},
 		{
@@ -115,16 +118,22 @@ set -x
 			`patch_launcher
 }`,
 			`patch_launcher
+
   # Now we restore the timestamps we saved in gitcleansources.
   # If the files have actually not changed since the last build,
   # even after being patched or embedded from untarred tarballs,
   # then this will cause the incremental builds to go much faster.
+  # since a few files that the patch process changes, don't actually
+  # change between incremental builds -- only their timestamp
+  # changes, but those files are at the very bottom of the tree
+  # of dependencies, so they cause ninja to do a lot of thinking
+  # and rebuilding.
   gitrestoretimestamps
 }`,
 			-1,
 		},
 		{`out/Default`, `"$HOME"/chromium-out`, -1},
-		{`rm -rf $HOME/chromium`, ``, -1},
+		{`rm -rf $HOME/chromium`, `# We skip rm -rf'ing Chromium to avoid redownloading sources.`, -1},
 		{
 			"linux-image-$(uname --kernel-release)",
 			"$(apt-cache search linux-image-* | awk ' { print $1 } ' | sort | egrep -v -- '(-dbg|-rt|-pae)' | grep ^linux-image-[0-9][.] | tail -1)",
@@ -177,7 +186,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			`# make modifications to default AOSP`,
 			`# make modifications to default AOSP
   # Since we just git cleaned everything, we will have to re-copy
-  # the MonochromePublic.apk file from its chromium-out place.
+  # the MonochromePublic.apk file from S3.
   mkdir -p ${BUILD_DIR}/external/chromium/prebuilt/arm64
   aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" ${BUILD_DIR}/external/chromium/prebuilt/arm64/
   `,
@@ -190,7 +199,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
   if test -f "${flag}" ; then
     true
   else
-    "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --fuse-ext2 --yes --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${HOME}/vendor-in"
+    timeout 30m "${BUILD_DIR}/vendor/android-prepare-vendor/execute-all.sh" --fuse-ext2 --yes --device "${DEVICE}" --buildID "${AOSP_BUILD}" --output "${HOME}/vendor-in"
     touch "${flag}"
   fi`,
 			-1,
@@ -206,6 +215,10 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
     mv "${BUILD_DIR}/vendor/android-prepare-vendor/$DEVICE/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/$DEVICE_FAMILY" "${BUILD_DIR}/vendor/google_devices"
   fi`,
 			`mkdir --parents "${BUILD_DIR}/vendor/google_devices"
+  # Instead of destroying source files with mv (and then causing a lengthy rebuild due to execute-all.sh)
+  # we mash the files into their final destination using rsync.  This also works additively since below
+  # we can mash big brother devices' files using the same technique.
+  # This saves an enormous amount of time.
   rsync -avHAX --inplace --delete --delete-excluded "${HOME}/vendor-in/${DEVICE}/$(tr '[:upper:]' '[:lower:]' <<< "${AOSP_BUILD}")/vendor/google_devices/${DEVICE}/" "${BUILD_DIR}/vendor/google_devices/${DEVICE}/"
 
   # smaller devices need big brother vendor files
