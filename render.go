@@ -419,15 +419,22 @@ gitrestoretimestamp() {
 		actualsum=$(md5sum "$filename" | awk ' { print $1 } ')
 		actualtimestamp=$(stat -c %y "$filename")
 		# If the file has changed, it has earned its mtime.
-		if [ "$sum" != "$actualsum" ] ; then continue ; fi
-		echo "time restore $PWD: $filename sum differs" >&2
+		if [ "$sum" != "$actualsum" ] ; then
+                    echo "time restore $PWD: $filename sum differs" >&2
+                    continue
+                fi
 		# If the file says "no time stamp", the file did not exist,
 		# cannot restore timestamp.
-		if [ "$timestamp" == "no time stamp" ] ; then continue ; fi
-		echo "time restore $PWD: $filename has no file stamp" >&2
+		if [ "$timestamp" == "no time stamp" ] ; then
+                    echo "time restore $PWD: $filename has no timestamp" >&2
+                    continue
+                fi
 		# If the file has the same time stamp as before,
 		# don't bother restoring it.
-		if [ "$timestamp" == "$actualtimestamp" ] ; then continue ; fi
+		if [ "$timestamp" == "$actualtimestamp" ] ; then
+                    echo "time restore $PWD: $filename has kept its timestamp" >&2
+                    continue
+                fi
 		echo "time restore $PWD: $filename unchanged, mtime differs, restoring" >&2
 		touch -d "$timestamp" "$filename"
 	done < <(cat .git/timestampsums)
