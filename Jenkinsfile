@@ -83,7 +83,7 @@ pipeline {
 		string defaultValue: "", description: 'Version of Chromium to pin to if requested.', name: 'CHROMIUM_VERSION', trim: true
 		string defaultValue: RELEASE_DOWNLOAD_ADDRESS, description: 'The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  It is mandatory.', name: 'RELEASE_DOWNLOAD_ADDRESS', trim: true
 		string defaultValue: RELEASE_UPLOAD_ADDRESS, description: 'The SSH address, in user@host:/path/to/folder format, to rsync artifacts to, in order to publish them.  Leave empty to skip publishing.', name: 'RELEASE_UPLOAD_ADDRESS', trim: true
-		booleanParam defaultValue: false, description: 'Force build even if no new versions exist of components.', name: 'FORCE_BUILD'
+		booleanParam defaultValue: false, description: 'Build (likely incrementally) even if no new versions exist of components.', name: 'IGNORE_VERSION_CHECKS'
 		booleanParam defaultValue: false, description: 'Clean workspace completely before starting.  This will also force a build as a side effect.', name: 'CLEAN_WORKSPACE'
 		text defaultValue: CUSTOM_CONFIG, description: 'An advanced option that allows you to specify customizations as explained in https://github.com/dan-v/rattlesnakos-stack/README.md .', name: 'CUSTOM_CONFIG'
 		string defaultValue: HOSTS_FILE_URL, description: 'An advanced option that allows you to specify an URL containing a replacement /etc/hosts file to enable global dns adblocking (e.g. https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts ).  Note: be careful with this, as you 1) will not get any sort of notification on blocking 2) if you need to unblock something you will have to rebuild the OS', name: 'HOSTS_FILE_URL', trim: true
@@ -243,9 +243,9 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 									script {
 										sh '''#!/bin/bash -e
 											env
-											forcebuild=
-											if [ "$FORCE_BUILD" == "true" ] ; then
-												forcebuild=-force-build
+											ignoreversionchecks=
+											if [ "$IGNORE_VERSION_CHECKS" == "true" ] ; then
+												ignoreversionchecks=-ignore-version-checks
 											fi
 											hostsfileurl=
 											if [ "$HOSTS_FILE_URL" != "" ] ; then
@@ -261,7 +261,7 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 												-build-type "$BUILD_TYPE" \\
 												-chromium-version "$CHROMIUM_VERSION" \\
 												-release-download-address "$RELEASE_DOWNLOAD_ADDRESS" \\
-												$forcebuild \\
+												$ignoreversionchecks \\
 												$hostsfileurl \\
 												$customconfig
 										'''

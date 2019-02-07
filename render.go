@@ -542,7 +542,7 @@ var releaseDownloadAddress = flag.String("release-download-address", "", "URL wh
 var buildType = flag.String("build-type", "user", "build type (user or userdebug)")
 var chromiumVersion = flag.String("chromium-version", "", "build with a specific version of Chromium")
 var hostsFileUrl = flag.String("hosts-file-url", "", "build with a custom hosts file from an URL")
-var forceBuild = flag.Bool("force-build", false, "force build even if already built")
+var ignoreVersionChecks = flag.Bool("ignore-version-checks", false, "ignore version checks altogether, building again")
 var customConfig = flag.String("custom-config", "", "path to a JSON file that has customizations (patches, script, prebuilts, et cetera) in the same AWSStackConfig structure documented in https://github.com/dan-v/rattlesnakeos-stack/README.md -- only the Custom structure members are respected")
 
 type myStackConfig struct {
@@ -579,7 +579,7 @@ func main() {
 		Schedule:               ignored,
 		Device:                 *device,
 		ChromiumVersion:        *chromiumVersion,
-		IgnoreVersionChecks:    *forceBuild,
+		IgnoreVersionChecks:    *ignoreVersionChecks,
 		HostsFile:              *hostsFileUrl,
 		EncryptedKeys:          false,
 		CustomPatches:          customizations.CustomPatches,
@@ -606,9 +606,6 @@ panic(err)
 	log.Printf("Script that will run:\n==================================================%s\n==================================================", string(renderedBuildScript))
 
 	cmd := []string{*output, *device}
-	if *forceBuild {
-		cmd = append(cmd, "true")
-	}
 	configStr, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		panic(err)
