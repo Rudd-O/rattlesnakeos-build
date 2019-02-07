@@ -408,7 +408,7 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 				copyArtifacts(
 					projectName: JOB_NAME,
 					selector: specific(BUILD_NUMBER),
-					filter: 's3/*-release/*ota_update*,s3/*-release/*-stable,s3/*-release/*-beta'
+					filter: 's3/*-release/*ota_update*,s3/*-release/*-factory-*,s3/*-release/*-stable,s3/*-release/*-beta'
 				)
 				sh """
 					rsync -a -- s3/*-release/ "${params.RELEASE_UPLOAD_ADDRESS}"/
