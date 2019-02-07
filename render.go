@@ -109,6 +109,18 @@ set -x
   yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
 			-1,
 		},
+		{
+			`patch_launcher
+}`,
+			`patch_launcher
+  # Now we restore the timestamps we saved in gitcleansources.
+  # If the files have actually not changed since the last build,
+  # even after being patched or embedded from untarred tarballs,
+  # then this will cause the incremental builds to go much faster.
+  gitrestoretimestamps
+}`,
+			-1,
+		},
 		{`out/Default`, `"$HOME"/chromium-out`, -1},
 		{`rm -rf $HOME/chromium`, ``, -1},
 		{
@@ -308,28 +320,6 @@ gitavoidreclone() {
 	fi
 }
 
-sed() {
-	if [ "$1" != "-i" ] ; then
-		/bin/sed "$@" || return $?
-	else
-		shift
-		local fn
-		for fn ; do true ; done
-		local bak="$fn".bak
-		/bin/sed --in-place=.bak "$@" || return $?
-		if test -f "$bak" ; then
-			if ! cmp "$fn" "$bak" >/dev/null 2>&1 ; then
-				echo "sed: changed: $@" >&2
-				rm "$bak"
-			else
-				mv "$bak" "$fn"
-			fi
-		else
-			echo "sed: no backup: $@" >&2
-		fi
-	fi
-}
-
 quiet() {
 	local r=0
 	local cmd="$1"
@@ -340,23 +330,82 @@ quiet() {
 	return "$r"
 }
 
-gitcleansources() {
-	local gitstatus
-	local r
-	local gitdir
+giterate() {
+	local ret=0
+	local cmd="$1"
+	shift
 	for gitdir in $(find -name .git -type d) ; do
 		pushd "$gitdir/.." > /dev/null || continue
-		gitstatus=$(git status --ignored) || { r=$? ; echo "$gitstatus" >&2 ; popd > /dev/null ; return $? ; }
-		if echo "$gitstatus" | grep -q "nothing to commit, working tree clean" && echo "$gitstatus" | grep -qv "Untracked files:" && echo "$gitstatus" | grep -qv "Ignored files:" ; then
-			true
-		else
-			pwd
-			echo "$gitstatus" >&2
-			git clean -fxd || { r=$? ; popd > /dev/null ; return $r ; }
-			git reset --hard || { r=$? ; popd > /dev/null ; return $r ; }
-		fi
+		"$cmd" "$@" || ret=$?
 		popd > /dev/null
+		if [ "$ret" != "0" ] ; then return "$ret" ; fi
 	done
+}
+
+gitcleansource() {
+	local type
+	local filename
+	local sum
+	local timestamp
+	rm -f .git/timestampsums
+	while read type filename ; do
+		if [ "$type" == "M" -o "$type" == "??" -o --type == "!!" ] ; then
+			if test -f "$filename" ] ; then
+				sum=$(md5sum "$filename" | awk ' { print $1 } ')
+				timestamp=$(stat -c %y "$filename")
+			elif test -e "$filename" ; then
+				sum="notafilenomd5sum"
+				timestamp=$(stat -c %y "$filename")
+			else
+				sum="deletednomd5sum"
+				timestamp="no time stamp"
+			fi
+			echo "$sum $timestamp $filename" >> .git/timestampsums
+		fi
+	done < <(git status --ignored --porcelain)
+	if [ -f .git/timestampsums ] ; then
+		echo "$PWD: has modifications" >&2
+		git clean -fxd || return $?
+		git reset --hard || return $?
+	fi
+}
+
+gitrestoretimestamp() {
+	local sum
+	local date
+	local time
+	local timezone
+	local filename
+	local timestamp
+	local actualsum
+	local actualtimestamp
+	test -f .git/timestampsums || return 0
+	while read sum date time timezone filename ; do
+		# If the file does not exist or is not a file,
+		# don't bother restoring the time zone.
+		test -f "$filename" || continue
+		timestamp="$date $time $timezone"
+		actualsum=$(md5sum "$filename" | awk ' { print $1 } ')
+		actualtimestamp=$(stat -c %y "$filename")
+		# If the file has changed, it has earned its mtime.
+		if [ "$sum" != "$actualsum" ] ; then continue ; fi
+		# If the file says "no time stamp", the file did not exist,
+		# cannot restore timestamp.
+		if [ "$timestamp" == "no time stamp" ] ; then continue ; fi
+		# If the file has the same time stamp as before,
+		# don't bother restoring it.
+		if [ "$timestamp" == "$actualtimestamp" ] ; then continue ; fi
+		echo "$PWD: $filename unchanged, mtime differs, restoring"
+		touch -d "$timestamp" "$filename"
+	done < <(cat .git/timestampsums)
+}
+
+gitcleansources() {
+	giterate gitcleansource "$@"
+}
+
+gitrestoretimestamps() {
+	giterate gitrestoretimestamp "$@"
 }
 
 aws_logging()
