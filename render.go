@@ -107,7 +107,8 @@ set -x
 			`# Suppressed copy from S3 to external/prebuilt/arm64/ as this happens later`,
 			-1,
 		},
-		{`fetch --nohooks android`, `test -d src/.fetched || { fetch --nohooks android ; touch src/.fetched ; }`, -1},
+		{`fetch --nohooks android`, `test -f src/.fetched || { fetch --nohooks android && touch src/.fetched ; }`, -1},
+		{`sudo ./build/install-build-deps-android.sh`, `test -f .depsinstalled || { sudo ./build/install-build-deps-android.sh && touch .depsinstalled ; }`, -1},
 		{
 			`yes | gclient sync --with_branch_heads --jobs 32 -RDf
 
