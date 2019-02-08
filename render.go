@@ -251,6 +251,63 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			`# do not make clobber, verity key generation happens only once`,
 			-1,
 		},
+		{
+			`# checkpoint stack version
+  echo "${STACK_VERSION}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/revision"`,
+			`# checkpoint stack version
+  echo "${STACK_VERSION}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/revision"
+
+  # checkpoint target device
+  echo "${DEVICE}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/device"
+
+  # checkpoint build type
+  echo "${BUILD_TYPE}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/build-type"
+`,
+			1,
+		},
+		{
+			`  # check stack version
+  existing_stack_version=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/revision" - || true)
+  if [ "$existing_stack_version" == "$STACK_VERSION" ]; then
+    echo "Stack version ($existing_stack_version) is up to date"
+  else
+    echo "Last successful build (if there was one) is not with current stack version ${STACK_VERSION}"
+    needs_update=true
+    BUILD_REASON="'Stack version $existing_stack_version != $STACK_VERSION'"
+  fi
+`,
+			`  # check stack version
+  existing_stack_version=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/revision" - || true)
+  if [ "$existing_stack_version" == "$STACK_VERSION" ]; then
+    echo "Stack version ($existing_stack_version) is up to date"
+  else
+    echo "Last successful build (if there was one) is not with current stack version ${STACK_VERSION}"
+    needs_update=true
+    BUILD_REASON="'Stack version $existing_stack_version != $STACK_VERSION'"
+  fi
+
+  # check target device
+  existing_device=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/device" - || true)
+  if [ "$existing_device" == "$DEVICE" ]; then
+    echo "Target device ($existing_device) is up to date"
+  else
+    echo "Last successful build (if there was one) did not target ${DEVICE}"
+    needs_update=true
+    BUILD_REASON="'Target device changed from $existing_device to $DEVICE'"
+  fi
+
+  # check target device
+  existing_build_type=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/build-type" - || true)
+  if [ "$existing_build_type" == "$BUILD_TYPE" ]; then
+    echo "Build type ($existing_build_type) is the same as previous build"
+  else
+    echo "Last successful build (if there was one) used a build type different from ${BUILD_TYPE}"
+    needs_update=true
+    BUILD_REASON="'Build type of last build changed from $existing_build_type to $BUILD_TYPE'"
+  fi
+`,
+			1,
+		},
 	}
 
 	for _, r := range replacements {
@@ -369,14 +426,14 @@ giterate() {
 }
 
 dumpcustomconfig() {
-  pushd ${BUILD_DIR}
+  pushd ${BUILD_DIR} >/dev/null 2>&1
   if [ -f custom-config.json ] ; then
-      echo "Custom configuration:"
-      cat custom-config.json | sed 's/^/  /'
+      echo "  Custom configuration:"
+      cat custom-config.json | sed 's/^/    /'
   else
       echo "No custom configuration."
   fi
-  popd
+  popd >/dev/null 2>&1
 }
 
 gitcleansource() {
@@ -638,9 +695,9 @@ func main() {
 	}
 
 	modded, err := alterTemplate(templates.BuildTemplate)
-if err != nil {
-panic(err)
-}
+	if err != nil {
+		panic(err)
+	}
 
 	renderedBuildScript, err := stack.RenderTemplate(modded, config)
 	if err != nil {
