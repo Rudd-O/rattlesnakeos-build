@@ -160,12 +160,13 @@ set -x
       echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
       log "Installing chromium build dependencies"
       sudo ./build/install-build-deps-android.sh
+
+      # run gclient sync (runhooks will run as part of this)
+      log "Running gclient sync (this takes a while)"
+      yes | gclient sync --with_branch_heads --jobs 32 -RDf
+
       echo "$currdepsrev" > ../.depsrev
   fi
-
-  # run gclient sync (runhooks will run as part of this)
-  log "Running gclient sync (this takes a while)"
-  yes | gclient sync --with_branch_heads --jobs 32 -RDf
 `,
 			-1,
 		},
