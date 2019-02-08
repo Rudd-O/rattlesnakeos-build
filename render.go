@@ -147,7 +147,7 @@ set -x
   # checkout specific revision
   git checkout "$CHROMIUM_REVISION" -f
 
-  # Determine if we need a clean build based on changed revision.
+  # Determine if we need a clean source tree and new build based on changed revision.
   currdepsrev=$(git rev-parse HEAD || true)
   formerdepsrev=$(cat ../.depsrev || true)
   if [ "$currdepsrev" != "$formerdepsrev" ] ; then
