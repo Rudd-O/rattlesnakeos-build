@@ -10,7 +10,13 @@ if (DEVICE != "") {
 } else {
   DEVICE = ALL_DEVICES
 }
+def ALL_BUILD_TYPES = ["user", "userdebug"]
 def BUILD_TYPE = funcs.loadParameter('parameters.groovy', 'BUILD_TYPE', "user")
+if (BUILD_TYPE != "") {
+  BUILD_TYPE = [BUILD_TYPE] + ALL_BUILD_TYPES
+} else {
+  BUILD_TYPE = ALL_BUILD_TYPES
+}
 
 def runStack(currentBuild, actually_build, stage="") {
 	def onlyReport = true
@@ -81,7 +87,7 @@ pipeline {
 
 	parameters {
 		choice choices: DEVICE, description: 'The device model to build for.', name: 'DEVICE'
-		choice defaultValue: BUILD_TYPE, choices: ["user", "userdebug"], description: 'The type of build you want.  Userdebug build types allow obtaining root via ADB, and enable ADB by default on boot.  See https://source.android.com/setup/build/building for more information.', name: 'BUILD_TYPE'
+		choice choices: BUILD_TYPE_CHOICES, description: 'The type of build you want.  Userdebug build types allow obtaining root via ADB, and enable ADB by default on boot.  See https://source.android.com/setup/build/building for more information.', name: 'BUILD_TYPE'
 		string defaultValue: "", description: 'Version of Chromium to pin to if requested.', name: 'CHROMIUM_VERSION', trim: true
 		string defaultValue: RELEASE_DOWNLOAD_ADDRESS, description: 'The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  It is mandatory.', name: 'RELEASE_DOWNLOAD_ADDRESS', trim: true
 		string defaultValue: RELEASE_UPLOAD_ADDRESS, description: 'The SSH address, in user@host:/path/to/folder format, to rsync artifacts to, in order to publish them.  Leave empty to skip publishing.', name: 'RELEASE_UPLOAD_ADDRESS', trim: true
