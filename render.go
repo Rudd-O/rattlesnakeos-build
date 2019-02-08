@@ -120,15 +120,6 @@ set -x
   yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
 			-1,
 		},
-		{`gn gen out/Default`, `gitrestoretimestamps`, -1},
-		{
-			`patch_launcher
-}`,
-			`patch_launcher
-
-}`,
-			-1,
-		},
 		{`out/Default`, `"$HOME"/chromium-out`, -1},
 		{`rm -rf $HOME/chromium`, `# We skip rm -rf'ing Chromium to avoid redownloading sources.`, -1},
 		{
@@ -419,9 +410,9 @@ giterate() {
 	local cmd="$1"
 	shift
 	for gitdir in $(find -name .git -type d) ; do
-		pushd "$gitdir/.." || continue
+		pushd "$gitdir/.." >/dev/null || continue
 		"$cmd" "$@" || ret=$?
-		popd
+		popd >/dev/null
 		if [ "$ret" != "0" ] ; then return "$ret" ; fi
 	done
 }
