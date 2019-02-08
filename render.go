@@ -114,7 +114,7 @@ set -x
   currdepsrev=$(git rev-parse HEAD || true)
   formerdepsrev=$(cat .depsrev || true)
   if [ "$currdepsrev" != "$formerdepsrev" ] ; then
-      sudo ./build/install-build-deps-android.sh && echo "currdepsrev" > .depsrev
+      sudo ./build/install-build-deps-android.sh && echo "$currdepsrev" > .depsrev
   fi
 `, -1,
 		},
