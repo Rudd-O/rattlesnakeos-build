@@ -69,10 +69,10 @@ set -x
 			-1,
 		},
 		{
-			"Stack Name: %s\\n  Stack Version: %s %s\\n  Stack Region: %s\\n  ", "", -1},
+			"Stack Name: %s\\n  Stack Version: %s %s\\n  Stack Region: %s\\n  ", "Build Type: %s\\n  ", -1},
 		{
 			`"${STACK_NAME}" "${STACK_VERSION}" "${STACK_UPDATE_MESSAGE}" "${REGION}" `,
-			"",
+			`"${BUILD_TYPE}" `,
 			-1,
 		},
 		{"Instance Type: %s\\n  Instance Region: %s\\n  Instance IP: %s\\n  ", "", -1},
