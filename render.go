@@ -277,8 +277,10 @@ _aws() {
 	if [[ $7 == --message=* ]]
 	then
 		echo "${7#--message=}" | sed 's/^/aws_notify: /' >&2
+		echo "$(dumpcustomconfig)" | sed 's/^/custom_config: /' >&2
 	else
 		echo "$8" | sed 's/^/aws_notify: /' >&2
+		echo "$(dumpcustomconfig)" | sed 's/^/custom_config: /' >&2
 	fi
   elif [ "$func" == "s3" ]
   then
@@ -364,6 +366,17 @@ giterate() {
 		popd > /dev/null
 		if [ "$ret" != "0" ] ; then return "$ret" ; fi
 	done
+}
+
+dumpcustomconfig() {
+  pushd ${BUILD_DIR}
+  if [ -f custom-config.json ] ; then
+      echo "Custom configuration:"
+      cat custom-config.json | sed 's/^/  /'
+  else
+      echo "No custom configuration."
+  fi
+  popd
 }
 
 gitcleansource() {

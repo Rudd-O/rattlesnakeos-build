@@ -3,13 +3,14 @@ def RELEASE_UPLOAD_ADDRESS = funcs.loadParameter('parameters.groovy', 'RELEASE_U
 def CUSTOM_CONFIG = funcs.loadParameter('parameters.groovy', 'CUSTOM_CONFIG', '')
 def HOSTS_FILE_URL = funcs.loadParameter('parameters.groovy', 'HOSTS_FILE_URL', '')
 
-def ALL_DEVICES = ["marlin (Pixel XL)", "angler (Nexus 6P)", "bullhead (Nexus 5X)", "sailfish (Pixel)", "taimen (Pixel 2 XL)", "walleye (Pixel 2)", "hikey (HiKey)", "hikey960 (HiKey 960)"]
+def ALL_DEVICES = ["marlin (Pixel XL)", "angler (Nexus 6P)", "bullhead (Nexus 5X)", "sailfish (Pixel)", "taimen (Pixel 2 XL)", "walleye (Pixel 2)", "hikey (HiKey)", "hikey960 (HiKey 960)", "crosshatch (Pixel 3 XL)", "blueline (Pixel XL)"]
 def DEVICE = funcs.loadParameter('parameters.groovy', 'DEVICE', "")
 if (DEVICE != "") {
   DEVICE = [DEVICE] + ALL_DEVICES
 } else {
   DEVICE = ALL_DEVICES
 }
+def BUILD_TYPE = funcs.loadParameter('parameters.groovy', 'BUILD_TYPE', "user")
 
 def runStack(currentBuild, actually_build, stage="") {
 	def onlyReport = true
@@ -24,6 +25,7 @@ def runStack(currentBuild, actually_build, stage="") {
 	}
 	def grepper = """#!/bin/bash -e
 		grep '^aws_notify: ' android-build.log | sed 's/^aws_notify: //'
+		grep '^custom_config: ' android-build.log | sed 's/^custom_config: //'
 	"""
 	script {
 		try {
@@ -79,13 +81,13 @@ pipeline {
 
 	parameters {
 		choice choices: DEVICE, description: 'The device model to build for.', name: 'DEVICE'
-		choice choices: ["user", "userdebug"], description: 'The type of build you want.  Userdebug build types allow obtaining root via ADB, and enable ADB by default on boot.  See https://source.android.com/setup/build/building for more information.', name: 'BUILD_TYPE'
+		choice defaultValue: BUILD_TYPE, choices: ["user", "userdebug"], description: 'The type of build you want.  Userdebug build types allow obtaining root via ADB, and enable ADB by default on boot.  See https://source.android.com/setup/build/building for more information.', name: 'BUILD_TYPE'
 		string defaultValue: "", description: 'Version of Chromium to pin to if requested.', name: 'CHROMIUM_VERSION', trim: true
 		string defaultValue: RELEASE_DOWNLOAD_ADDRESS, description: 'The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  It is mandatory.', name: 'RELEASE_DOWNLOAD_ADDRESS', trim: true
 		string defaultValue: RELEASE_UPLOAD_ADDRESS, description: 'The SSH address, in user@host:/path/to/folder format, to rsync artifacts to, in order to publish them.  Leave empty to skip publishing.', name: 'RELEASE_UPLOAD_ADDRESS', trim: true
 		booleanParam defaultValue: false, description: 'Build (likely incrementally) even if no new versions exist of components.', name: 'IGNORE_VERSION_CHECKS'
 		booleanParam defaultValue: false, description: 'Clean workspace completely before starting.  This will also force a build as a side effect.', name: 'CLEAN_WORKSPACE'
-		text defaultValue: CUSTOM_CONFIG, description: 'An advanced option that allows you to specify customizations as explained in https://github.com/dan-v/rattlesnakos-stack/README.md .', name: 'CUSTOM_CONFIG'
+		text defaultValue: CUSTOM_CONFIG, description: 'An advanced option that allows you to specify customizations for your ROM (see the README.md file of this project).', name: 'CUSTOM_CONFIG'
 		string defaultValue: HOSTS_FILE_URL, description: 'An advanced option that allows you to specify an URL containing a replacement /etc/hosts file to enable global dns adblocking (e.g. https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts ).  Note: be careful with this, as you 1) will not get any sort of notification on blocking 2) if you need to unblock something you will have to rebuild the OS', name: 'HOSTS_FILE_URL', trim: true
 	}
 
@@ -153,7 +155,7 @@ pipeline {
 							stash includes: '**', name: 'keys'
 						}
 						stash includes: 'rattlesnakeos-stack/**', name: 'stack'
-						stash includes: '*.go', name: 'code'
+						stash includes: '*.go,*.json', name: 'code'
 					}
 				}
 			}
@@ -185,7 +187,7 @@ pipeline {
 								dir("s3/rattlesnakeos-keys") {
 									unstash 'keys'
 								}
-								sh 'rm -rf rattlesnakeos-stack *.go'
+								sh 'rm -rf rattlesnakeos-stack *.go *.json'
 								unstash 'stack'
 								unstash 'code'
 								dir("rattlesnakeos-stack") {
@@ -239,33 +241,33 @@ func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
 						}
 						stage("Stack") {
 							steps {
-								dir("rattlesnakeos-stack") {
-									script {
-										sh '''#!/bin/bash -e
-											env
-											ignoreversionchecks=
-											if [ "$IGNORE_VERSION_CHECKS" == "true" ] ; then
-												ignoreversionchecks=-ignore-version-checks
-											fi
-											hostsfileurl=
-											if [ "$HOSTS_FILE_URL" != "" ] ; then
-												hostsfileurl="-hosts-file-url $HOSTS_FILE_URL"
-											fi
-											customconfig=
-											if [ "$CUSTOM_CONFIG" != "" ] ; then
-												echo "$CUSTOM_CONFIG" > custom-config.json
-												customconfig="-custom-config custom-config.json"
-											fi
-											GOPATH="$PWD" go run ../render.go -output stack-builder \\
-												-device "$DEVICE" \\
-												-build-type "$BUILD_TYPE" \\
-												-chromium-version "$CHROMIUM_VERSION" \\
-												-release-download-address "$RELEASE_DOWNLOAD_ADDRESS" \\
-												$ignoreversionchecks \\
-												$hostsfileurl \\
-												$customconfig
-										'''
-									}
+								script {
+									sh '''#!/bin/bash -e
+										env
+										ignoreversionchecks=
+										if [ "$IGNORE_VERSION_CHECKS" == "true" ] ; then
+											ignoreversionchecks=-ignore-version-checks
+										fi
+										hostsfileurl=
+										if [ "$HOSTS_FILE_URL" != "" ] ; then
+											hostsfileurl="-hosts-file-url $HOSTS_FILE_URL"
+										fi
+										if [ "$CUSTOM_CONFIG" != "" ] ; then
+											echo "$CUSTOM_CONFIG" > custom-config.json
+										fi
+										customconfig=
+										if [ -f custom-config.json ] ; then
+											customconfig="-custom-config custom-config.json"
+										fi
+										GOPATH="$PWD/rattlesnakeos-stack" go run render.go -output stack-builder \\
+											-device "$DEVICE" \\
+											-build-type "$BUILD_TYPE" \\
+											-chromium-version "$CHROMIUM_VERSION" \\
+											-release-download-address "$RELEASE_DOWNLOAD_ADDRESS" \\
+											$ignoreversionchecks \\
+											$hostsfileurl \\
+											$customconfig
+									'''
 								}
 							}
 						}
