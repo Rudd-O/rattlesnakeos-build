@@ -431,9 +431,9 @@ giterate() {
 	local cmd="$1"
 	shift
 	for gitdir in $(find -name .git -type d) ; do
-		pushd "$gitdir/.." > /dev/null || continue
+		pushd "$gitdir/.." || continue
 		"$cmd" "$@" || ret=$?
-		popd > /dev/null
+		popd
 		if [ "$ret" != "0" ] ; then return "$ret" ; fi
 	done
 }
