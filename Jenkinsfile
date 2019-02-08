@@ -202,13 +202,7 @@ pipeline {
 								dir("rattlesnakeos-stack/github.com/dan-v") {
 									sh 'ln -sf ../../ rattlesnakeos-stack'
 								}
-								dir("rattlesnakeos-stack/stack") {
-									writeFile file: "exports.go", text: '''package stack
-
-func RenderTemplate(templateStr string, params interface{}) ([]byte, error) {
-	return renderTemplate(templateStr, params)
-}'''
-								}
+								sh 'mv -f exports.go rattlesnakeos-stack/stack'
 							}
 						}
 						stage("Markers") {
