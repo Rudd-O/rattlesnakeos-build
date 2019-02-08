@@ -108,7 +108,16 @@ set -x
 			-1,
 		},
 		{`fetch --nohooks android`, `test -f src/.fetched || { fetch --nohooks android && touch src/.fetched ; }`, -1},
-		{`sudo ./build/install-build-deps-android.sh`, `test -f .depsinstalled || { sudo ./build/install-build-deps-android.sh && touch .depsinstalled ; }`, -1},
+		{
+			`sudo ./build/install-build-deps-android.sh`,
+			`
+  currdepsrev=$(git rev-parse HEAD || true)
+  formerdepsrev=$(cat .depsrev || true)
+  if [ "$currdepsrev" != "$formerdepsrev" ] ; then
+      sudo ./build/install-build-deps-android.sh && echo "currdepsrev" > .depsrev
+  fi
+`, -1,
+		},
 		{
 			`yes | gclient sync --with_branch_heads --jobs 32 -RDf
 
