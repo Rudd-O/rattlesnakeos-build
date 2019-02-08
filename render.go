@@ -258,10 +258,13 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
   echo "${STACK_VERSION}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/revision"
 
   # checkpoint target device
-  echo "${DEVICE}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/device"
+  echo "${DEVICE}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/build-environment/device"
 
   # checkpoint build type
-  echo "${BUILD_TYPE}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/build-type"
+  echo "${BUILD_TYPE}" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/build-environment/build-type"
+
+  # checkpoint custom config
+  echo "$(dumpcustomconfig)" | aws s3 cp - "s3://${AWS_RELEASE_BUCKET}/build-environment/custom-config"
 `,
 			1,
 		},
@@ -287,7 +290,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
   fi
 
   # check target device
-  existing_device=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/device" - || true)
+  existing_device=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/build-environment/device" - || true)
   if [ "$existing_device" == "$DEVICE" ]; then
     echo "Target device ($existing_device) is up to date"
   else
@@ -296,14 +299,24 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
     BUILD_REASON="'Target device changed from $existing_device to $DEVICE'"
   fi
 
-  # check target device
-  existing_build_type=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/build-type" - || true)
+  # check target build type
+  existing_build_type=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/build-environment/build-type" - || true)
   if [ "$existing_build_type" == "$BUILD_TYPE" ]; then
     echo "Build type ($existing_build_type) is the same as previous build"
   else
     echo "Last successful build (if there was one) used a build type different from ${BUILD_TYPE}"
     needs_update=true
     BUILD_REASON="'Build type of last build changed from $existing_build_type to $BUILD_TYPE'"
+  fi
+
+  # check target build customizations
+  existing_custom_config=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/build-environment/custom-config" - || true)
+  if [ "$existing_custom_config" == "$(dumpcustomconfig)" ]; then
+    echo "Custom config is the same as previous build"
+  else
+    echo "Last successful build used a different custom config"
+    needs_update=true
+    BUILD_REASON="'Custom config changed from last build'"
   fi
 `,
 			1,
