@@ -149,7 +149,7 @@ set -x
 
   # Determine if we need a clean build based on changed revision.
   currdepsrev=$(git rev-parse HEAD || true)
-  formerdepsrev=$(cat .depsrev || true)
+  formerdepsrev=$(cat ../.depsrev || true)
   if [ "$currdepsrev" != "$formerdepsrev" ] ; then
       # New rev.  Third party tooling probably changed.  Will lead to invalid build.  Nuke the build and reinstall the dependencies.
       rm -rf out/Default
@@ -160,7 +160,7 @@ set -x
       echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
       log "Installing chromium build dependencies"
       sudo ./build/install-build-deps-android.sh
-      echo "$currdepsrev" > .depsrev
+      echo "$currdepsrev" > ../.depsrev
   fi
 
   # run gclient sync (runhooks will run as part of this)
