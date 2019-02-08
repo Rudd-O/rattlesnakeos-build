@@ -184,16 +184,16 @@ pipeline {
 						}
 						stage("Unstash inputs") {
 							steps {
-								script {
-									sh '''#!/bin/bash -xe
-										rm -rf s3
-										mkdir -p s3/rattlesnakeos-keys
-									'''
+								dir("s3") {
+									deleteDir()
 								}
 								dir("s3/rattlesnakeos-keys") {
 									unstash 'keys'
 								}
-								sh 'rm -rf rattlesnakeos-stack *.go *.json'
+								dir("rattlesnakeos-stack") {
+									deleteDir()
+								}
+								sh 'rm -rf *.go *.json'
 								unstash 'stack'
 								unstash 'code'
 								dir("rattlesnakeos-stack") {
