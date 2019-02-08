@@ -107,7 +107,7 @@ set -x
 			`# Suppressed copy from S3 to external/prebuilt/arm64/ as this happens later`,
 			-1,
 		},
-		{`fetch --nohooks android`, `test -f .gclient || fetch --nohooks android`, -1},
+		{`fetch --nohooks android`, `test -d src/.git || fetch --nohooks android`, -1},
 		{
 			`yes | gclient sync --with_branch_heads --jobs 32 -RDf
 
