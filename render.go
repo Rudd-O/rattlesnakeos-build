@@ -137,7 +137,8 @@ set -x
 
   # Not fetched?  Start over.  This prevents errors when fetch is interrupted.
   test -f -a .fetched || {
-    rm -rf src out/Default .depsrev
+    echo "The Chromium source tree has never been fetched or failed halfway.  Starting the fetch over."
+    rm -rf src out/Default .depsrev .cipd .gclient .gclient_entries
     fetch --nohooks android
     touch .fetched
   }
@@ -152,6 +153,8 @@ set -x
   formerdepsrev=$(cat ../.depsrev || true)
   if [ "$currdepsrev" != "$formerdepsrev" ] ; then
       # New rev.  Third party tooling probably changed.  Will lead to invalid build.  Nuke the build and reinstall the dependencies.
+      echo "Revision of Chromium has changed from $formerdepsrev to $currdepsrev.  Nuking third-party and build products."
+
       rm -rf out/Default
       git clean -dffx
       git checkout -- .
