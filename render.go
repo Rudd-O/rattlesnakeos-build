@@ -116,7 +116,7 @@ set -x
 
   # reset any modifications
   git checkout -- .`,
-			`gitcleansources
+			`
   yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
 			-1,
 		},
@@ -126,18 +126,6 @@ set -x
 }`,
 			`patch_launcher
 
-  # Now we restore the timestamps we saved in gitcleansources.
-  # If the files have actually not changed since the last build,
-  # even after being patched or embedded from untarred tarballs,
-  # then this will cause the incremental builds to go much faster.
-  # since a few files that the patch process changes, don't actually
-  # change between incremental builds -- only their timestamp
-  # changes, but those files are at the very bottom of the tree
-  # of dependencies, so they cause ninja to do a lot of thinking
-  # and rebuilding.
-  pushd ${BUILD_DIR}
-  gitrestoretimestamps
-  popd
 }`,
 			-1,
 		},
