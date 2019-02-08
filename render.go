@@ -527,7 +527,7 @@ cleanup() {
 persist_latest_versions() {
   rm -rf env*.save
   mkdir -p s3/interstage
-  cat > s3/interstage/env.$BUILD_NUMBER.save <<EOF
+  cat > s3/interstage/env.$JENKINS_BUILD_NUMBER.save <<EOF
 STACK_UPDATE_MESSAGE="$STACK_UPDATE_MESSAGE"
 LATEST_STACK_VERSION="$LATEST_STACK_VERSION"
 LATEST_CHROMIUM="$LATEST_CHROMIUM"
@@ -539,7 +539,7 @@ EOF
 }
 
 reload_latest_versions() {
-  source s3/interstage/env.$BUILD_NUMBER.save
+  source s3/interstage/env.$JENKINS_BUILD_NUMBER.save
 }
 
 get_encryption_key() {
