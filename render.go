@@ -107,27 +107,66 @@ set -x
 			`# Suppressed copy from S3 to external/prebuilt/arm64/ as this happens later`,
 			-1,
 		},
-		{`fetch --nohooks android`, `test -f src/.fetched -a .fetched || { rm -rf src .fetched && fetch --nohooks android && touch src/.fetched .fetched ; }`, -1},
-		{
-			`sudo ./build/install-build-deps-android.sh`,
-			`
-  currdepsrev=$(git rev-parse HEAD || true)
-  formerdepsrev=$(cat .depsrev || true)
-  if [ "$currdepsrev" != "$formerdepsrev" ] ; then
-      sudo ./build/install-build-deps-android.sh && echo "$currdepsrev" > .depsrev
-  fi
-`, -1,
-		},
-		{
-			`yes | gclient sync --with_branch_heads --jobs 32 -RDf
+		{`  # fetch chromium
+  mkdir -p $HOME/chromium
+  cd $HOME/chromium
+  fetch --nohooks android
+  cd src
+
+  # checkout specific revision
+  git checkout "$CHROMIUM_REVISION" -f
+
+  # install dependencies
+  echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+  log "Installing chromium build dependencies"
+  sudo ./build/install-build-deps-android.sh
+
+  # run gclient sync (runhooks will run as part of this)
+  log "Running gclient sync (this takes a while)"
+  yes | gclient sync --with_branch_heads --jobs 32 -RDf
 
   # cleanup any files in tree not part of this revision
   git clean -dff
 
   # reset any modifications
-  git checkout -- .`,
-			`
-  yes | gclient sync --with_branch_heads --jobs 32 -RDf`,
+  git checkout -- .
+`,
+			`  # fetch chromium
+  mkdir -p $HOME/chromium
+  cd $HOME/chromium
+
+  # Not fetched?  Start over.  This prevents errors when fetch is interrupted.
+  test -f -a .fetched || {
+    rm -rf src out/Default .depsrev
+    fetch --nohooks android
+    touch .fetched
+  }
+
+  cd src
+
+  # checkout specific revision
+  git checkout "$CHROMIUM_REVISION" -f
+
+  # Determine if we need a clean build based on changed revision.
+  currdepsrev=$(git rev-parse HEAD || true)
+  formerdepsrev=$(cat .depsrev || true)
+  if [ "$currdepsrev" != "$formerdepsrev" ] ; then
+      # New rev.  Third party tooling probably changed.  Will lead to invalid build.  Nuke the build and reinstall the dependencies.
+      rm -rf out/Default
+      git clean -dffx
+      git checkout -- .
+
+      # install dependencies
+      echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+      log "Installing chromium build dependencies"
+      sudo ./build/install-build-deps-android.sh
+      echo "$currdepsrev" > .depsrev
+  fi
+
+  # run gclient sync (runhooks will run as part of this)
+  log "Running gclient sync (this takes a while)"
+  yes | gclient sync --with_branch_heads --jobs 32 -RDf
+`,
 			-1,
 		},
 		{`out/Default`, `"$HOME"/chromium-out`, -1},
