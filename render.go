@@ -279,17 +279,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
     BUILD_REASON="'Stack version $existing_stack_version != $STACK_VERSION'"
   fi
 `,
-			`  # check stack version
-  existing_stack_version=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/revision" - || true)
-  if [ "$existing_stack_version" == "$STACK_VERSION" ]; then
-    echo "Stack version ($existing_stack_version) is up to date"
-  else
-    echo "Last successful build (if there was one) is not with current stack version ${STACK_VERSION}"
-    needs_update=true
-    BUILD_REASON="'Stack version $existing_stack_version != $STACK_VERSION'"
-  fi
-
-  # check target device
+			`  # check target device
   existing_device=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/build-environment/device" - || true)
   if [ "$existing_device" == "$DEVICE" ]; then
     echo "Target device ($existing_device) is up to date"
@@ -312,11 +302,21 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
   # check target build customizations
   existing_custom_config=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/build-environment/custom-config" - || true)
   if [ "$existing_custom_config" == "$(dumpcustomconfig)" ]; then
-    echo "Custom config is the same as previous build"
+    echo "Custom configuration is the same as previous build"
   else
-    echo "Last successful build used a different custom config"
+    echo "Last successful build used a different custom configuration"
     needs_update=true
-    BUILD_REASON="'Custom config changed from last build'"
+    BUILD_REASON="'Custom configuration changed from last build'"
+  fi
+
+  # check stack version
+  existing_stack_version=$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/rattlesnakeos-stack/revision" - || true)
+  if [ "$existing_stack_version" == "$STACK_VERSION" ]; then
+    echo "Stack version ($existing_stack_version) is up to date"
+  else
+    echo "Last successful build (if there was one) is not with current stack version ${STACK_VERSION}"
+    needs_update=true
+    BUILD_REASON="'Stack version $existing_stack_version != $STACK_VERSION'"
   fi
 `,
 			1,
