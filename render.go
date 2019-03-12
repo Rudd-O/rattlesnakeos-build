@@ -135,15 +135,18 @@ set -x
   mkdir -p $HOME/chromium
   cd $HOME/chromium
 
-  # Not fetched?  Start over.  This prevents errors when fetch is interrupted.
-  test -f -a .fetched || {
+  test -f -a .fetched && {
+    # Fetched?  Just git fetch to get the latest versions.
+    cd src
+    git fetch
+  } || {
+    # Not fetched?  Start over.  This prevents errors when fetch is interrupted.
     echo "The Chromium source tree has never been fetched or failed halfway.  Starting the fetch over."
     rm -rf src out/Default .depsrev .cipd .gclient .gclient_entries
     fetch --nohooks android
     touch .fetched
+    cd src
   }
-
-  cd src
 
   # checkout specific revision
   git checkout "$CHROMIUM_REVISION" -f
