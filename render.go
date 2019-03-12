@@ -107,6 +107,17 @@ set -x
 			`# Suppressed copy from S3 to external/prebuilt/arm64/ as this happens later`,
 			-1,
 		},
+		{
+			`log "Chromium latest: $LATEST_CHROMIUM"`,
+			`# Must redo what check_for_new_versions does in order to get the right pinned version.
+  if [ ! -z "$CHROMIUM_PINNED_VERSION" ]; then
+    log "Setting LATEST_CHROMIUM to pinned version $CHROMIUM_PINNED_VERSION"
+    LATEST_CHROMIUM="$CHROMIUM_PINNED_VERSION"
+  fi
+  log "Chromium latest: $LATEST_CHROMIUM"
+`,
+			-1,
+		},
 		{`  # fetch chromium
   mkdir -p $HOME/chromium
   cd $HOME/chromium
