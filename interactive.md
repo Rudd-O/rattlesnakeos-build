@@ -40,24 +40,16 @@ GOPATH=$PWD/rattlesnakeos-stack go run render.go [...options...] -output stack-b
 
 The options are as follows:
 
-*  -build-type string
-  *  	build type (user or userdebug) (default "user")
-*  -chromium-version string
-  *  	build with a specific version of Chromium
-*  -custom-config string
-  *  	path to a JSON file that has customizations (patches, script, prebuilts, et cetera) 
-*  -device string
-  *  	build the stack for this device (default "marlin")
-*  -hosts-file-url string
-  *  	build with a custom hosts file from an URL
-*  -ignore-version-checks
-  *  	ignore version checks altogether, building again
-*  -output string
-  *  	Output file for stack script. (default "stack-builder")
-*  -release-download-address string
-  *  	URL where the Android platform will look for published updates
+*  `-build-type` string: build type (user or userdebug) (default `user`)
+*  `-chromium-version` string: build with a specific version of Chromium
+*  `-custom-config` string: path to a JSON file that has customizations (patches, script, prebuilts, et cetera) 
+*  `-device` string: build the stack for this device (default "marlin")
+*  `-hosts-file-url` string: build with a custom hosts file from an URL
+*  `-ignore-version-checks`: ignore version checks altogether, building again
+*  `-output` string: output file for stack script. (default "stack-builder")
+*  `-release-download-address` string: URL where the Android platform will look for published updates
 
-Of these, the ones most important are `-device` and `-build-type`.
+Of these, the ones most important are `-device` and `-build-type`.  Device refers to your device's code name, and build type lets you choose whether to do a `userdebug` build (debuggable but insecure) or a standard `user` build .
 
 Once you've `go run` the program, you'll get a program `stack-builder` in the main directory.
 
