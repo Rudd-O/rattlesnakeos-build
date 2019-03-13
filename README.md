@@ -94,9 +94,9 @@ In RattlesnakeOS, you create a TOML configuration file `.rattlesnakeos.toml` usi
 
 In this project, you can do one of three things:
 
-1. *Check in* the customization options as a JSON file named `custom-config.json`, alongside the `Jenkinsfile` within.  Yes, this requires you to fork the project.
+1. *Check in* the customization options as a JSON file named `custom-config.json`, alongside the `Jenkinsfile` within.  Yes, this requires you to fork this project to your own repository.
 2. If you'd like not to fork the project, you can also place the JSON text as the (string) value of the `CUSTOM_CONFIG` parameter of your `parameters.groovy` file.  This is obviously more complicated.
-3. Finally, you can manually paste JSON text directly into the *Build with parameters* page.  Any text pasted there will override any existing `custom-config.json` file for that specific build.
+3. Finally, you can manually paste JSON text directly into the *Build with parameters* page.  Any text pasted there will override any existing `custom-config.json` file for that specific build.  But the next build won't remember this action, so it will be done without the custom config you pasted.
 
 JSON being not TOML, there are only syntax differences between what may go into the configuration file.
 
