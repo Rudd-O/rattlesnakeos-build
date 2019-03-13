@@ -118,6 +118,26 @@ set -x
 `,
 			-1,
 		},
+		{
+			`sed --in-place --expression "s@s3bucket@${RELEASE_URL}/@g" config.xml`,
+			`sed --in-place --expression "s@s3bucket@${RELEASE_URL}/@g" config.xml
+
+  # Must disable SSL when the updater URL is not SSL.
+  if [[ "$RELEASE_DOWNLOAD_ADDRESS" == http://* ]] ; then
+    # User has requested a non-HTTPS address.  Honor it by
+    # modifying the security settings of the updater.
+    # Updates are signed so attackers could only tamper
+    # with the updater directory file and prevent updates
+    # or cause downloads of updates that won't install.
+    echo Warning -- your release download address for updates is not an HTTPS address. >&2
+    echo Attackers can trigger a denial of service to your updates process. >&2
+    echo Proceeding as requested nonetheless, by permitting cleartext updates. >&2
+    sed -i \
+        's/cleartextTrafficPermitted="false"/cleartextTrafficPermitted="true"/' \
+        ../xml/network_security_config.xml
+  fi`,
+			-1,
+		},
 		{`  # fetch chromium
   mkdir -p $HOME/chromium
   cd $HOME/chromium
