@@ -79,10 +79,10 @@ This file must contain *only a single* Groovy map (e.g. `["DEVICE": "taimen", "B
 
 The parameters that go in the map are documented fully in the *Build with parameters* page of the build project, but for completeness, I will briefly describe the most important here:
 
-* `def DEVICE` refers to the variant of the device you are building for (`marlin`, `taimen`...).
-* `def BUILD_TYPE` refers to whether you want a `user` (default) or `userdebug` (insecure but debuggable) build.
-* `def CUSTOM_CONFIG` refers to a JSON configuration file that allows you to control what goes into your images (explained below).
-* `def HOSTS_FILE_URL` refers to an URL that will be included as `/etc/hosts` in your device images, useful for permanent ad blocking of known bad / spam / adware domains
+* `DEVICE` refers to the variant of the device you are building for (`marlin`, `taimen`...).
+* `BUILD_TYPE` refers to whether you want a `user` (default) or `userdebug` (insecure but debuggable) build.
+* `CUSTOM_CONFIG` refers to a JSON configuration file that allows you to control what goes into your images (explained below).
+* `HOSTS_FILE_URL` refers to an URL that will be included as `/etc/hosts` in your device images, useful for permanent ad blocking of known bad / spam / adware domains
 
 Once you have edited this file on your Jenkins master, have the Jenkins project *Scan Multibranch Pipeline Now*.  This causes the build to pick up the new defaults.  Cancel any build that happens as a result of the rescan.
 
