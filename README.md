@@ -10,9 +10,17 @@ Among the chief improvement over RattlesnakeOS is incremental build speed.  Fail
 
 The instructions require you to have a Jenkins master running on some physical machine, a sufficiently-powerful Jenkins slave to perform the builds on (perhaps the Jenkins master is powerful enough), and administrative privileges on both machines.
 
-## How to use it
+## How to use this
 
-### Jenkins build slave configuration (one-time process)
+Follow the *Initial setup* instructions below, then just let your build server build Android for you.  Builds happen daily at 12 AM from the fifth to the fifteenth of the month.
+
+OTA updates will be pushed (if you configured that) at the end of each build -- in that case, your phone will check for updates and download the OTA.
+
+## Initial setup
+
+The process is more involved than the standard RattlesnakeOS stack, but once it's setup, it's fire and forget.
+
+### Jenkins build slave configuration
 
 Ensure you have a Debian 9-based Jenkins build slave configured and working in your Jenkins master.  Ensure your build slave has at least 16 GB RAM and 200 GB disk space available.  Give that build slave the label `android`.
 
@@ -20,7 +28,7 @@ The `sudo` configuration on the slave needs to be adjusted, so that the slave pr
 
 *If you only have one machine, but it is sufficiently powerful*, then ensure it's running Debian 9 and the Jenkins master.  In your Jenkins configuration, add the label `android` to the master node, so that the script can allocate builds to the machine.  In this case, you must reconfigure `sudo` on the master, as explained just in the prior paragraph.
 
-### Signing keys generation (one-time-process)
+### Signing keys generation
 
 Now note the device you'll build images for (e.g., `marlin`).  We'll use this shortly.
 
@@ -53,7 +61,7 @@ openssl genrsa -out avb.pem 2048
 cd ../..
 ```
 
-### Jenkins master configuration (one-time process)
+### Jenkins master configuration
 
 Add the shared Groovy library https://github.com/Rudd-O/shared-jenkins-libraries to your Jenkins Global Pipeline libraries configuration, as per https://jenkins.io/doc/book/pipeline/shared-libraries/ .
 
@@ -61,7 +69,7 @@ Create a Jenkins multibranch pipeline, pointed at this repository (or your fork 
 
 This will dispatch a build immediately.  Expect the build to fail, or cancel it if you so desire.
 
-### Signing keys deployment (one-time process)
+### Signing keys deployment
 
 Locate the folder of the Jenkins multibranch pipeline you created.  It should contain the Jenkins `config.xml` file associated with the job.  Tip: vanilla Jenkins installs the folder under `/var/lib/jenkins/jobs`.
 
@@ -69,7 +77,7 @@ Place the generated keys in the `keys/<PRODUCT_NAME>` folder under the job folde
 
 *Secure these keys and your build server* (ensure the keys under this job directory are readable only by the Jenkins user).  If you lose the keys, you won't be able to create new flashable builds without unlocking and wiping your device.  If your keys are stolen, someone could upload a malicious ROM to your device without you noticing.
 
-### Default build parameters (one time process)
+### Default build parameters
 
 The default parameters this project uses are unlikely to suit you.  Fortunately, you can control them.
 
@@ -148,7 +156,7 @@ See?  Nothing extraordinary.  One small caveat: this program supports only a lim
 
 If you opted for the JSON-in-`parameters.groovy` option, have the Jenkins project *Scan Multibranch Pipeline Now*.  This causes the build to pick up the new defaults.  Cancel any build that happens as a result of the rescan, and manually dispatch one more build.  If you opted for the fork-and-check-in-my-own-`config.json` option, all you have to do is commit and push your changes — your build server will start to build.
 
-### Release server (optional, one-time process)
+### Release server (optional)
 
 To support OTA updates, here's what you must do.
 
@@ -177,19 +185,21 @@ Open the file `parameters.groovy` and add two keys to the map:
   * If you are using SSH to upload the files, it should be something like `remoteuser@remotehost:/path/to/webserver/ota-updates`.
   * If, however, the Web server is colocated with Jenkins, just specify an absolute path like `/srv/nginx/www-root/ota-updates`.
 
-### Rescan pipeline (one-time process)
+### Rescan pipeline
 
 Have Jenkins rescan your multibranch job one more time so that the defaults are picked up.  Cancel the build that happens as a result of the rescan.
-
-### Begin building (as often as you'd like)
 
 You're now ready to go.
 
 Verify that your defaults in `parameters.groovy` got picked up by glancing at the *Build with parameters* page of your build.
 
+### Do your first build
+
 Build your first image.  This will take anywhere from six to twelve hours.  Relax, it's okay.  If the build is interrupted, subsequent builds will pick up from where the previous ones left off.  This is, by the way, a huge feature that RattlesnakeOS does not have.
 
-Flash the built image to your phone using the standard `fastboot` flashing procedure documented everywhere.  You'll find it in the artifacts page of the build (and, if you so chose, your release Web server).
+### Manually flash the `*-factory-latest.tar.xz` once
+
+Flash the built image to your phone using the standard `fastboot` flashing procedure documented everywhere.  You'll find it in the artifacts page of the build (and, if you so chose, your release Web server as well).
 
 You are good to go now.  Enjoy!
 
