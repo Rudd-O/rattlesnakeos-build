@@ -77,21 +77,21 @@ Place the generated keys in the `keys/<PRODUCT_NAME>` folder under the job folde
 
 *Secure these keys and your build server* (ensure the keys under this job directory are readable only by the Jenkins user).  If you lose the keys, you won't be able to create new flashable builds without unlocking and wiping your device.  If your keys are stolen, someone could upload a malicious ROM to your device without you noticing.
 
-### Default build parameters
+### Configure build parameters
 
 The default parameters this project uses are unlikely to suit you.  Fortunately, you can control them.
 
 In your Jenkins master, locate the same folder you deployed the keys to.  It should have the `config.xml` file we mentioned before.  You will add, in that folder, a file named `parameters.groovy`.
 
-This file must contain *only a single* Groovy map (e.g. `["DEVICE": "taimen", "BUILD_TYPE": "userdebug"]`).  Upon first load of the `Jenkinsfile`, as well as subsequent rescans of the multibranch repo, the parameters are loaded into memory and serve as the defaults that will be picked during automatic builds.
+This file must contain *only a single* Groovy map.  Upon first load of the `Jenkinsfile`, as well as subsequent rescans of the multibranch repo, the parameters are loaded into memory and serve as the defaults that will be picked during automatic builds.  This means that every time you change this file, you must do a scan of the multibranch repo from the project page's left sidebar.
 
 Here's a sample file (options in the sample will be explained below):
 
 ```
 [
-    "RELEASE_DOWNLOAD_ADDRESS": "http://myserver.athome.local/",
-    "RELEASE_UPLOAD_ADDRESS": "deployer@myserver.athome.local:/srv/copperhead/",
     "DEVICE": "taimen",
+    "BUILD_TYPE": "user",
+    "HOSTS_FILE_URL": "http://myserver.athome.local/android-hosts.txt",
     "CUSTOM_CONFIG": '''
     {
         "custom-patches": [
@@ -107,29 +107,35 @@ Here's a sample file (options in the sample will be explained below):
         ]
     }
     ''',
+    "RELEASE_DOWNLOAD_ADDRESS": "http://myserver.athome.local/",
+    "RELEASE_UPLOAD_ADDRESS": "deployer@myserver.athome.local:/srv/copperhead/",
 ]
 ```
 
-The parameters that go in the map are documented fully in the *Build with parameters* page of the build project, but for completeness, I will briefly describe the most important here:
+Here's a quick reference to the parameters that this file takes.
 
-* `DEVICE` refers to the variant of the device you are building for (`marlin`, `taimen`...).
-* `BUILD_TYPE` refers to whether you want a `user` (default) or `userdebug` (insecure but debuggable) build.
-* `CUSTOM_CONFIG` refers to a JSON configuration file that allows you to control what goes into your images (explained below).
-* `HOSTS_FILE_URL` refers to an URL that will be included as `/etc/hosts` in your device images, useful for permanent ad blocking of known bad / spam / adware domains
+* `DEVICE`: mandatory; refers to the variant of the device you are building for (`marlin`, `taimen`...).
+* `BUILD_TYPE`: optional; refers to whether you want a `user` (default) or `userdebug` (insecure but debuggable) build.
+* `HOSTS_FILE_URL`: optional; refers to an URL that will be included as `/etc/hosts` in your device images, useful for permanent ad blocking of known bad / spam / adware domains
+* `CUSTOM_CONFIG`: optional; refers to a JSON configuration file that allows you to control what goes into your images (explained below).
+* `RELEASE_DOWNLOAD_ADDRESS`: optional; this is your Web server URL that will show the published files to your phone (for the updater to work).
+* `RELEASE_UPLOAD_ADDRESS`: optional; this is the address where the results will be published.  See below for information.
+
+For more information on how to use these options, keep reading below.
 
 Once you have edited this file on your Jenkins master, have the Jenkins project *Scan Multibranch Pipeline Now*.  This causes the build to pick up the new defaults.  Cancel any build that happens as a result of the rescan.
 
-#### RattlesnakeOS ROM customization options
+#### RattlesnakeOS ROM customization options (`CUSTOM_CONFIG`)
 
 RattlesnakeOS has [a variety of customization options you can use in order to customize your build](https://github.com/dan-v/rattlesnakeos-stack#configuration).  However, there is a caveat: unlike RattlesnakeOS, the configuration options aren't supplied in the same way to the build.
 
-In RattlesnakeOS, you create a TOML configuration file `.rattlesnakeos.toml` using the `rattlesnakeos-stack config` command, then you edit and save the configuration file.  This configuration file is then used by `rattlesnakeos-stack deploy`.
+In RattlesnakeOS, you ordinarily create a TOML configuration file `.rattlesnakeos.toml` using the `rattlesnakeos-stack config` command, then you edit and save the configuration file.  This configuration file is then used by `rattlesnakeos-stack deploy`.
 
 In this project, you can do one of three things:
 
+2. Place the JSON text as the (string) value of the `CUSTOM_CONFIG` parameter of your `parameters.groovy` file.  This is what is shown above.
 1. *Check in* the customization options as a JSON file named `custom-config.json`, alongside the `Jenkinsfile` within.  Yes, this requires you to fork this project to your own repository.
-2. If you'd like not to fork the project, you can also place the JSON text as the (string) value of the `CUSTOM_CONFIG` parameter of your `parameters.groovy` file.  This is obviously more complicated.
-3. Finally, you can manually paste JSON text directly into the *Build with parameters* page.  Any text pasted there will override any existing `custom-config.json` file for that specific build.  But the next build won't remember this action, so it will be done without the custom config you pasted.
+3. Manually paste JSON text directly into the *Build with parameters* page.  Any text pasted there will override any existing `custom-config.json` file for that specific build.  But the next build won't remember this action, so it will be done without the custom config you pasted.
 
 JSON being not TOML, there are syntax differences between what may go into the configuration file.  The semantics of the custom configuration, however, are the same.
 
@@ -183,44 +189,41 @@ One small caveat: this program supports only a limited subset of options of the 
 
 If you opted for the JSON-in-`parameters.groovy` option, have the Jenkins project *Scan Multibranch Pipeline Now*.  This causes the build to pick up the new defaults.  Cancel any build that happens as a result of the rescan, and manually dispatch one more build.  If you opted for the fork-and-check-in-my-own-`config.json` option, all you have to do is commit and push your changes — your build server will start to build.
 
-### Release server (optional)
+#### Release server (optional, `RELEASE_DOWNLOAD_ADDRESS` and `RELEASE_UPLOAD_ADDRESS`)
 
 To support OTA updates, here's what you must do.
 
 First, you gotta set up a Web server somewhere (and probably also add SSL certificates to it).  We will assume this server will be accessible at `https://yourserver.name/`, and the full URL to the OTA updates repo is `https://yourserver.name/ota-updates/`.  Instructions on how to set up a Web server are left to you.
 
-#### Web server on the same box as Jenkins master
+##### Web server on the same box as Jenkins master
 
 If the server is on the same machine, ensure that the Jenkins master's UNIX username can write to the folder served at the URL `https://yourserver.name/ota-updates/`.
 
 Test this part by hand.  Create a dummy Jenkins job that attempts to copy files into that folder.  Finally, see if the files are accessible through your Web browser.
 
-#### Remote Web server accessible via SSH
+##### Remote Web server accessible via SSH
 
 Ensure that your Jenkins master can SSH into the Web server and deploy files on the root directory of the Web server, such that the Jenkins master can publish the released files.  This will involve adding an UNIX user to the Web server machine, giving that user permission to write to the `ota-updates` subfolder served by the Web server, and setting up SSH pubkey authentication so that the Jenkins master can successfully `rsync` files into the `ota-updates` folder of the Web server (all via SSH).
 
 Test this part by hand.  Create a dummy Jenkins job that attempts to push files from the Jenkins master via `rsync` or `scp`.  Finally, see if the files show when you browse to `https://yourserver.name/ota-updates/`, and the server allows you to download the pushed files.
 
-#### OTA updates release configuration
+##### OTA updates release configuration
 
 Now configure the mandatory defaults on your build pipeline.
 
-Open the file `parameters.groovy` and add two keys to the map:
+Open the file `parameters.groovy` and adjust the `RELEASE_UPLOAD_ADDRESS` and `RELEASE_DOWNLOAD_ADDRESS` parameters:
 
-1. `RELEASE_DOWNLOAD_ADDRESS`: this is your Web server URL that will show the published files to your phone (for the updater to work).  In our example, it was `https://yourserver.name/ota-updates/`.
-2. `RELEASE_UPLOAD_ADDRESS`: this is the address where the results will be published.
-  * If you are using SSH to upload the files, it should be something like `remoteuser@remotehost:/path/to/webserver/ota-updates`.
-  * If, however, the Web server is colocated with Jenkins, just specify an absolute path like `/srv/nginx/www-root/ota-updates`.
+For `RELEASE_UPLOAD_ADDRESS`, if you are using SSH to upload the files, it should be something like `remoteuser@remotehost:/path/to/webserver/ota-updates`.  If, however, the Web server is colocated with Jenkins, just specify an absolute path like `/srv/nginx/www-root/ota-updates`.
 
-### Rescan pipeline
+For `RELEASE_DOWNLOAD_ADDRESS`, in our example here, it should be something like `https://yourserver.name/ota-updates/`.
 
-Have Jenkins rescan your multibranch job one more time so that the defaults are picked up.  Cancel the build that happens as a result of the rescan.
+Have Jenkins rescan your multibranch job one more time so that the options are picked up.  Cancel the build that happens as a result of the rescan.
+
+### Do your first build
 
 You're now ready to go.
 
 Verify that your defaults in `parameters.groovy` got picked up by glancing at the *Build with parameters* page of your build.
-
-### Do your first build
 
 Build your first image.  This will take anywhere from six to twelve hours.  Relax, it's okay.  If the build is interrupted, subsequent builds will pick up from where the previous ones left off.  This is, by the way, a huge feature that RattlesnakeOS does not have.
 
