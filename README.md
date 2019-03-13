@@ -12,7 +12,7 @@ The instructions require you to have a Jenkins master running on some physical m
 
 ## How to use this
 
-Follow the *Initial setup* instructions below, then just let your build server build Android for you.  Builds happen daily at 12 AM from the fifth to the fifteenth of the month.
+Follow the *Initial setup* instructions below, then just let your build server build Android for you.  Builds happen daily at 12 AM from the fifth to the fifteenth of the month.  You can also trigger manual builds (with tweaked settings) from the *Build with parameters* page of your build server, as often as you'd like.
 
 OTA updates will be pushed (if you configured that) at the end of each build -- in that case, your phone will check for updates and download the OTA.
 
