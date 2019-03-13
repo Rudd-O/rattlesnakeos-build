@@ -149,7 +149,7 @@ set -x
   test -f -a .fetched && {
     # Fetched?  Just git fetch to get the latest versions.
     cd src
-    git fetch
+    git fetch --tags
   } || {
     # Not fetched?  Start over.  This prevents errors when fetch is interrupted.
     echo "The Chromium source tree has never been fetched or failed halfway.  Starting the fetch over."
