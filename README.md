@@ -4,7 +4,7 @@ This project will help you build RattlesnakeOS (vanilla AOSP for Google Pixel an
 
 You can use this project in one of two ways:
 
-1. Run the build locally directly.  This build recipe will generate the necessary build script, which you can then run (after setting up signing keys).  You can then manually flash the result to your phone.
+1. [Run the build locally directly](interactive.md).  This build recipe will generate the necessary build script, which you can then run (after setting up signing keys).  You can then manually flash the result to your phone.
 2. [Use Jenkins](jenkins.md).  This build recipe uses a Jenkinsfile and some custom code to adapt [the RattlesnakeOS build stack](https://github.com/dan-v/rattlesnakeos-stack/) for building Android directly on-prem.
   * This build recipe will also build periodically (by default, between the fifth and the fifteenth of each month, as per the `Jenkinsfile` triggers), as well as within every push to this repo (or your repo, if you fork this repo to your own).  This allows you to stay up-to-date with the latest security patches.  Of course, the build can manage an Android OTA update repo, so that updates hit your phone automatically.
 

@@ -1,6 +1,6 @@
-# Jenkins builds
+# Build RattlesnakeOS with Jenkins
 
-The process is admittedly more involved than the standard RattlesnakeOS stack, but once it's setup, it's fire and forget.
+The process is admittedly more involved than the standard RattlesnakeOS stack, and it's harder to setup than [a manual build](interactive.md), but once it's setup, it's fire and forget.
 
 The instructions require you to have a Jenkins master running on some physical machine, a sufficiently-powerful Jenkins slave to perform the builds on (perhaps the Jenkins master is powerful enough), and administrative privileges on both machines.
 
@@ -30,7 +30,7 @@ This will dispatch a build immediately.  Expect the build to fail, or cancel it 
 
 Locate the folder of the Jenkins multibranch pipeline you created.  It should contain the Jenkins `config.xml` file associated with the job.  Tip: vanilla Jenkins installs the folder under `/var/lib/jenkins/jobs`.
 
-Place the generated keys in the `keys/<PRODUCT_NAME>` folder under the job folder.  Keep the directory structure.  In other words, if your Jenkins job folder is `/var/lib/jenkins/jobs/RattlesnakeOS` then the keys folder will end up in `/var/lib/jenkins/jobs/RattlesnakeOS/keys/<PRODUCT_NAME>`.
+Place the generated keys in the `keys/<PRODUCT_NAME>` folder under the job folder.  Keep the directory structure.  In other words, if your Jenkins job folder is `/var/lib/jenkins/jobs/RattlesnakeOS` then the keys folder of your device will end up in `/var/lib/jenkins/jobs/RattlesnakeOS/keys/<PRODUCT_NAME>`.
 
 *Secure these keys and your build server* (ensure the keys under this job directory are readable only by the Jenkins user).
 

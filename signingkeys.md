@@ -31,4 +31,4 @@ openssl genrsa -out avb.pem 2048
 cd ../..
 ```
 
-Be sure to back up and safeguad these keys.  If you lose the keys, you won't be able to create new flashable builds without unlocking and wiping your device.  If your keys are stolen, someone could upload a malicious ROM to your device without you noticing.
+Be sure to back up and safeguard these keys.  If you lose the keys, you won't be able to create new flashable builds without unlocking and wiping your device.  If your keys are stolen, someone could upload a malicious ROM to your device without you noticing.
