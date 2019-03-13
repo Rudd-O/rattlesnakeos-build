@@ -85,6 +85,29 @@ In your Jenkins master, locate the same folder you deployed the keys to.  It sho
 
 This file must contain *only a single* Groovy map (e.g. `["DEVICE": "taimen", "BUILD_TYPE": "userdebug"]`).  Upon first load of the `Jenkinsfile`, as well as subsequent rescans of the multibranch repo, the parameters are loaded into memory and serve as the defaults that will be picked during automatic builds.
 
+Here's a sample file (options in the sample will be explained below):
+
+```
+[
+    "RELEASE_DOWNLOAD_ADDRESS": "http://myserver.athome.local/",
+    "RELEASE_UPLOAD_ADDRESS": "deployer@myserver.athome.local:/srv/copperhead/",
+    "DEVICE": "taimen",
+    "CUSTOM_CONFIG": '''
+    {
+        "custom-patches": {
+        "repo": "https://github.com/RattlesnakeOS/community_patches",
+        "patches": [
+            "00001-global-internet-permission-toggle.patch",
+            "00002-global-sensors-permission-toggle.patch",
+            "00003-disable-menu-entries-in-recovery.patch",
+            "00004-increase-default-maximum-password-length.patch"
+        ]
+        }
+    }
+    ''',
+]
+```
+
 The parameters that go in the map are documented fully in the *Build with parameters* page of the build project, but for completeness, I will briefly describe the most important here:
 
 * `DEVICE` refers to the variant of the device you are building for (`marlin`, `taimen`...).
