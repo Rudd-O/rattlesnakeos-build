@@ -94,15 +94,17 @@ Here's a sample file (options in the sample will be explained below):
     "DEVICE": "taimen",
     "CUSTOM_CONFIG": '''
     {
-        "custom-patches": {
-        "repo": "https://github.com/RattlesnakeOS/community_patches",
-        "patches": [
-            "00001-global-internet-permission-toggle.patch",
-            "00002-global-sensors-permission-toggle.patch",
-            "00003-disable-menu-entries-in-recovery.patch",
-            "00004-increase-default-maximum-password-length.patch"
+        "custom-patches": [
+            {
+                "repo": "https://github.com/RattlesnakeOS/community_patches",
+                "patches": [
+                    "00001-global-internet-permission-toggle.patch",
+                    "00002-global-sensors-permission-toggle.patch",
+                    "00003-disable-menu-entries-in-recovery.patch",
+                    "00004-increase-default-maximum-password-length.patch"
+                ]
+            }
         ]
-        }
     }
     ''',
 ]
@@ -119,7 +121,7 @@ Once you have edited this file on your Jenkins master, have the Jenkins project 
 
 #### RattlesnakeOS ROM customization options
 
-RattlesnakeOS has a variety of customization options you can use in order to customize your build.  However, there is a caveat: unlike RattlesnakeOS, the configuration options aren't supplied in the same way to the build.
+RattlesnakeOS has [a variety of customization options you can use in order to customize your build](https://github.com/dan-v/rattlesnakeos-stack#configuration).  However, there is a caveat: unlike RattlesnakeOS, the configuration options aren't supplied in the same way to the build.
 
 In RattlesnakeOS, you create a TOML configuration file `.rattlesnakeos.toml` using the `rattlesnakeos-stack config` command, then you edit and save the configuration file.  This configuration file is then used by `rattlesnakeos-stack deploy`.
 
@@ -149,23 +151,25 @@ Here's how the *exact same thing* would look like, in your `custom-config.json` 
 
 ```
 {
-    "custom-patches": {
+    "custom-patches": [{
         "repo": "https://github.com/RattlesnakeOS/community_patches",
         "patches": [
             "00001-global-internet-permission-toggle.patch",
             "00002-global-sensors-permission-toggle.patch"
         ]
-    },
-    "custom-scripts": {
+    }],
+    "custom-scripts": [{
         "repo": "https://github.com/RattlesnakeOS/example_patch_shellscript",
         "scripts": [
             "00002-custom-boot-animation.sh"
         ]
-    }
+    }]
 }
 ```
 
-See?  Nothing extraordinary.  One small caveat: this program supports only a limited subset of options of the `.rattlesnakeos.toml` configuration file.  Here is a comprehensive list:
+See?  Nothing wow or extraordinary.  It's merely a format change.
+
+One small caveat: this program supports only a limited subset of options of the `.rattlesnakeos.toml` configuration file.  Here is a comprehensive list:
 
 ```
 		CustomPatches:          customizations.CustomPatches,

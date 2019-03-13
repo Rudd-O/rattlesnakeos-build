@@ -738,6 +738,22 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		m := make(map[string]interface{})
+		err = json.Unmarshal(contents, &m)
+		if err != nil {
+			panic(err)
+		}
+		for k, v := range(m) {
+                    if strings.Contains(k, "-") {
+                        delete(m, k)
+                        k = strings.Replace(k, "-", "", -1)
+                        m[k] = v
+                    }
+                }
+                contents, err = json.MarshalIndent(m, "", "    ")
+		if err != nil {
+			panic(err)
+		}
 		err = json.Unmarshal(contents, &customizations)
 		if err != nil {
 			panic(err)
