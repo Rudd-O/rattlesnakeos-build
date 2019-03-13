@@ -4,7 +4,7 @@ This project will help you build RattlesnakeOS (vanilla AOSP for Google Pixel an
 
 This build recipe uses a Jenkinsfile and some custom code to adapt [the RattlesnakeOS build stack](https://github.com/dan-v/rattlesnakeos-stack/) for building Android directly on-prem.  This recipe bypasses RattlesnakeOS' Amazon AWS stages, running code only on machines you control fully.
 
-This build recipe will also build periodically (by default, between the fifth and the tenth of each month, as per the `Jenkinsfile` triggers), as well as within every push to this repo (or your repo, if you fork this repo to your own).  This allows you to stay up-to-date with the latest security patches.  Of course, this recipe can manage an Android OTA update repo, so that updates hit your phone automatically.
+This build recipe will also build periodically (by default, between the fifth and the fifteenth of each month, as per the `Jenkinsfile` triggers), as well as within every push to this repo (or your repo, if you fork this repo to your own).  This allows you to stay up-to-date with the latest security patches.  Of course, this recipe can manage an Android OTA update repo, so that updates hit your phone automatically.
 
 Among the chief improvement over RattlesnakeOS is incremental build speed.  Failed or interrupted builds can be retried and will pick up exactly from where the failed build left off.  Source code is reused between builds.  Furthermore, if a successful build has taken place in the past, and nothing has changed from the previous build, the pipeline will exit early with a successful status.  You do not need to worry about wasting CPU, memory, disk space or bandwidth on repeat builds of the same thing.
 
