@@ -98,7 +98,7 @@ In this project, you can do one of three things:
 2. If you'd like not to fork the project, you can also place the JSON text as the (string) value of the `CUSTOM_CONFIG` parameter of your `parameters.groovy` file.  This is obviously more complicated.
 3. Finally, you can manually paste JSON text directly into the *Build with parameters* page.  Any text pasted there will override any existing `custom-config.json` file for that specific build.  But the next build won't remember this action, so it will be done without the custom config you pasted.
 
-JSON being not TOML, there are only syntax differences between what may go into the configuration file.
+JSON being not TOML, there are syntax differences between what may go into the configuration file.  The semantics of the custom configuration, however, are the same.
 
 Let's use the RattlesnakeOS README example for our purpose here.  Suppose you'd put this into a `.rattlesnakeos.toml` config:
 
