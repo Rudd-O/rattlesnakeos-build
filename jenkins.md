@@ -92,4 +92,6 @@ Build your first image.  This will take anywhere from six to twelve hours.  Rela
 
 ## Manually flash the `*-factory-latest.tar.xz` once
 
-Flash the built image to your phone using the standard `fastboot` flashing procedure documented everywhere.  You'll find it in the artifacts page of the build (and, if you so chose, your release Web server as well).
+The resulting images will appear as artifacts of the Jenkins job run.  You can download the factory latest tarball from there.
+
+Unpack the factory latest tarball.  Then flash the built image to your phone using the standard `fastboot` flashing procedure documented everywhere.  You'll find it in the artifacts page of the build (and, if you so chose, your release Web server as well).
