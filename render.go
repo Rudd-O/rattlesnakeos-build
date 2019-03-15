@@ -154,7 +154,9 @@ set -x
 
   # run gclient sync (runhooks will run as part of this)
   log "Running gclient sync (this takes a while)"
-  yes | gclient sync --with_branch_heads --jobs 32 -RDf
+  for i in {1..5}; do
+    yes | gclient sync --with_branch_heads --jobs 32 -RDf && break
+  done
 
   # cleanup any files in tree not part of this revision
   git clean -dff
