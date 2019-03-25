@@ -142,9 +142,27 @@ set -x
   mkdir -p $HOME/chromium
   cd $HOME/chromium
   fetch --nohooks android
-  cd src
+  cd src`,
+		`  # fetch chromium
+  mkdir -p $HOME/chromium
+  cd $HOME/chromium
 
-  # checkout specific revision
+  test -d src -a -f .fetched && {
+    # Fetched?  Just git fetch to get the latest versions.
+    cd src
+    git fetch --tags
+  } || {
+    # Not fetched?  Start over.  This prevents errors when fetch is interrupted.
+    echo "The Chromium source tree has never been fetched or failed halfway.  Starting the fetch over."
+    rm -rf src out/Default .depsrev .cipd .gclient .gclient_entries
+    fetch --nohooks android
+    touch .fetched
+    cd src
+  }`,
+			-1,
+		},
+		{
+			`# checkout specific revision
   git checkout "$CHROMIUM_REVISION" -f
 
   # install dependencies
@@ -164,24 +182,7 @@ set -x
   # reset any modifications
   git checkout -- .
 `,
-			`  # fetch chromium
-  mkdir -p $HOME/chromium
-  cd $HOME/chromium
-
-  test -f -a .fetched && {
-    # Fetched?  Just git fetch to get the latest versions.
-    cd src
-    git fetch --tags
-  } || {
-    # Not fetched?  Start over.  This prevents errors when fetch is interrupted.
-    echo "The Chromium source tree has never been fetched or failed halfway.  Starting the fetch over."
-    rm -rf src out/Default .depsrev .cipd .gclient .gclient_entries
-    fetch --nohooks android
-    touch .fetched
-    cd src
-  }
-
-  # checkout specific revision
+			`# checkout specific revision
   git checkout "$CHROMIUM_REVISION" -f
 
   # Determine if we need a clean source tree and new build based on changed revision.
@@ -190,9 +191,9 @@ set -x
   if [ "$currdepsrev" != "$formerdepsrev" ] ; then
       # New rev.  Third party tooling probably changed.  Will lead to invalid build.  Nuke the build and reinstall the dependencies.
       echo "Revision of Chromium has changed from $formerdepsrev to $currdepsrev.  Nuking third-party and build products."
-
       rm -rf out/Default
-      git clean -dffx
+
+      # reset any modifications to prevent problems with gclient sync
       git checkout -- .
 
       # install dependencies
@@ -202,7 +203,15 @@ set -x
 
       # run gclient sync (runhooks will run as part of this)
       log "Running gclient sync (this takes a while)"
-      yes | gclient sync --with_branch_heads --jobs 32 -RDf
+      for i in {1..5}; do
+        yes | gclient sync --with_branch_heads --jobs 32 -RDf && break
+      done
+
+      # cleanup any files in tree not part of this revision
+      git clean -dff
+
+      # reset any modifications
+      git checkout -- .
 
       echo "$currdepsrev" > ../.depsrev
   fi
