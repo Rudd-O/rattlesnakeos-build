@@ -218,7 +218,6 @@ set -x
 `,
 			-1,
 		},
-		{`out/Default`, `"$HOME"/chromium-out`, -1},
 		{`rm -rf $HOME/chromium`, `# We skip rm -rf'ing Chromium to avoid redownloading sources.`, -1},
 		{
 			"linux-image-$(uname --kernel-release)",
