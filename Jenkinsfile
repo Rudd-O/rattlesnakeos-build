@@ -30,8 +30,8 @@ def runStack(currentBuild, actually_build, stage="") {
 		}
 	}
 	def grepper = """#!/bin/bash -e
-		grep '^aws_notify: ' android-build.log | sed 's/^aws_notify: //'
-		grep '^custom_config: ' android-build.log | sed 's/^custom_config: //'
+		grep -a '^aws_notify: ' android-build.log | sed 's/^aws_notify: //'
+		grep -a '^custom_config: ' android-build.log | sed 's/^custom_config: //'
 	"""
 	script {
 		try {
