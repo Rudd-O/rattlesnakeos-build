@@ -259,6 +259,7 @@ pipeline {
 										if [ -f custom-config.json ] ; then
 											customconfig="-custom-config custom-config.json"
 										fi
+										set -x
 										GOPATH="$PWD/rattlesnakeos-stack" go run render.go -output stack-builder \\
 											-device "$DEVICE" \\
 											-build-type "$BUILD_TYPE" \\
