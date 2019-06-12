@@ -232,6 +232,10 @@ pipeline {
 										script {
 											funcs.aptInstall(["golang", "curl", "fuseext2", "eatmydata"])
 										}
+										sh '''
+										mountpoint /rw && sudo mount -o remount,noatime /rw || true
+										mountpoint /home && sudo mount -o remount,noatime /home || true
+										'''
 									}
 								}
 								script {
