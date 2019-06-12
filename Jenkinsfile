@@ -58,13 +58,13 @@ def runStack(currentBuild, actually_build, stage="") {
 				returnStdout: true
 			).trim()
 			if (description != "") {
-				currentBuild.description = description
+				currentBuild.description = funcs.wrapPre(funcs.escapeXml(description))
 			}
 		} catch(error) {
-			currentBuild.description = "Failed in ${phase} phase:\n${error}.\n" + sh (
+			currentBuild.description = "<p>Failed in ${phase} phase: ${error}</p>." + funcs.wrapPre(funcs.escapeXml(sh (
 				script: grepper,
 				returnStdout: true
-			).trim() + "\n\n" + currentBuild.description
+			).trim() + "\n")) + currentBuild.description
 			throw error
 		}
 	}
@@ -422,7 +422,7 @@ pipeline {
 				"""
 				sh 'rm -rf s3'
 				script {
-					currentBuild.description = currentBuild.description + "\nPublished artifacts to ${params.RELEASE_UPLOAD_ADDRESS}"
+					currentBuild.description = currentBuild.description + "<p>Published artifacts to ${params.RELEASE_UPLOAD_ADDRESS}</p>"
 				}
 			}
 		}
