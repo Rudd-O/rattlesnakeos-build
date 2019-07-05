@@ -482,14 +482,21 @@ _aws() {
 }
 
 gitavoidreclone() {
-	if test -d "$2"/.git ; then
-		pushd "$2"
-		sed -i 's|url = .*|url = '"$1"'|' .git/config
-		git fetch
-		popd
-	else
-		git clone "$1" "$2"
-	fi
+  local branch=master
+  if [ "$1" == "--branch" ] ; then
+  branch="$2"
+    shift
+    shift
+  fi
+  if test -d "$2"/.git ; then
+    pushd "$2"
+    sed -i 's|url = .*|url = '"$1"'|' .git/config
+    git fetch
+    git checkout origin/"$branch"
+    popd
+  else
+    git clone --branch "$branch" "$1" "$2"
+  fi
 }
 
 quiet() {
