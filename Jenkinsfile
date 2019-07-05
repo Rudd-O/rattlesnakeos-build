@@ -53,18 +53,17 @@ def runStack(currentBuild, actually_build, stage="") {
 			fi
 			exit \$ret
 			"""
-			def description = sh (
+			def description = funcs.wrapPre(funcs.escapeXml(sh (
 				script: grepper,
 				returnStdout: true
-			).trim()
-			if (description != "") {
-				currentBuild.description = funcs.wrapPre(funcs.escapeXml(description))
-			}
+			).trim()))
+			currentBuild.description = currentBuild.description.split("<hr/>")[0] + "<hr/>" + description
 		} catch(error) {
-			currentBuild.description = "<p>Failed in ${phase} phase: ${error}</p>." + funcs.wrapPre(funcs.escapeXml(sh (
+			def description = "<p>Failed in ${phase} phase: ${error}</p>." + funcs.wrapPre(funcs.escapeXml(sh (
 				script: grepper,
 				returnStdout: true
-			).trim() + "\n")) + currentBuild.description
+			).trim()))
+			currentBuild.description = currentBuild.description.split("<hr/>")[0] + "<hr/>" + description
 			throw error
 		}
 	}
@@ -145,6 +144,9 @@ pipeline {
 							userRemoteConfigs: [[url: 'https://github.com/dan-v/rattlesnakeos-stack']]
 						])
 						updateBuildNumberDisplayName()
+						script {
+							currentBuild.description = currentBuild.description + '<hr/>'
+						}
 					}
 				}
 				stage('Stash inputs') {
