@@ -77,7 +77,7 @@ pipeline {
 	agent none
 
 	triggers {
-		pollSCM('* * * * *')
+		pollSCM('H H * * *')
 		cron('H 0 5,6,7,8,9,10,11,12,13,14,15 * *')
 	}
 
@@ -139,20 +139,12 @@ pipeline {
 							doGenerateSubmoduleConfigurations: false,
 							extensions: [[
 								$class: 'RelativeTargetDirectory',
-								relativeTargetDir: 'rattlesnakeos-stack'
+								relativeTargetDir: 'upstream/rattlesnakeos-stack'
 							]],
 							submoduleCfg: [],
 							userRemoteConfigs: [[url: 'https://github.com/dan-v/rattlesnakeos-stack']]
 						])
-						script {
-							dir("rattlesnakeos-stack") {
-								env.RATTLESNAKEOS_GIT_HASH = sh (
-									script: "git rev-parse --short HEAD",
-									returnStdout: true
-								).trim()
-							}
-							println "RattlesnakeOS Git hash is reported as ${env.RATTLESNAKEOS_GIT_HASH}"
-						}
+						updateBuildNumberDisplayName()
 					}
 				}
 				stage('Stash inputs') {
@@ -160,7 +152,7 @@ pipeline {
 						dir("../../../keys/") {
 							stash includes: '**', name: 'keys'
 						}
-						stash includes: 'rattlesnakeos-stack/**', name: 'stack'
+						stash includes: 'upstream/rattlesnakeos-stack/**', name: 'stack'
 						stash includes: '*.go,*.json', name: 'code'
 					}
 				}
@@ -179,30 +171,27 @@ pipeline {
 								}
 							}
 							steps {
-								sh "sudo rm -rf * .??*"
+								deleteDir()
 							}
 						}
 						stage("Unstash inputs") {
 							steps {
-								dir("s3") {
-									deleteDir()
-								}
 								dir("s3/rattlesnakeos-keys") {
 									unstash 'keys'
 								}
-								dir("rattlesnakeos-stack") {
+								dir("upstream/rattlesnakeos-stack") {
 									deleteDir()
 								}
 								sh 'rm -rf *.go *.json'
 								unstash 'stack'
 								unstash 'code'
-								dir("rattlesnakeos-stack") {
+								dir("upstream/rattlesnakeos-stack") {
 									sh 'ln -sf . src'
 								}
-								dir("rattlesnakeos-stack/github.com/dan-v") {
+								dir("upstream/rattlesnakeos-stack/github.com/dan-v") {
 									sh 'ln -sf ../../ rattlesnakeos-stack'
 								}
-								sh 'mv -f exports.go rattlesnakeos-stack/stack'
+								sh 'mv -f exports.go upstream/rattlesnakeos-stack/stack'
 							}
 						}
 						stage("Markers") {
@@ -213,6 +202,9 @@ pipeline {
 							}
 							steps {
 								script {
+									dir("s3") {
+										deleteDir()
+									}
 									try {
 										copyArtifacts(
 											projectName: JOB_NAME,
@@ -264,7 +256,7 @@ pipeline {
 											customconfig="-custom-config custom-config.json"
 										fi
 										set -x
-										GOPATH="$PWD/rattlesnakeos-stack" go run render.go -output stack-builder \\
+										GOPATH="$PWD/upstream/rattlesnakeos-stack" go run render.go -output stack-builder \\
 											-device "$DEVICE" \\
 											-build-type "$BUILD_TYPE" \\
 											-chromium-version "$CHROMIUM_VERSION" \\
@@ -411,6 +403,9 @@ pipeline {
 				}
 			}
 			steps {
+				dir('s3') {
+					deleteDir()
+				}
 				sh 'rm -rf s3'
 				copyArtifacts(
 					projectName: JOB_NAME,
@@ -420,7 +415,9 @@ pipeline {
 				sh """
 					rsync -a -- s3/*-release/ "${params.RELEASE_UPLOAD_ADDRESS}"/
 				"""
-				sh 'rm -rf s3'
+				dir('s3') {
+					deleteDir()
+				}
 				script {
 					currentBuild.description = currentBuild.description + "<p>Published artifacts to ${params.RELEASE_UPLOAD_ADDRESS}</p>"
 				}
