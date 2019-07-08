@@ -251,8 +251,6 @@ pipeline {
 										fi
 										if [ "$CUSTOM_CONFIG" != "" ] ; then
 											echo "$CUSTOM_CONFIG" > "$HOME"/custom-config.json
-										else
-											rm -f "$HOME"/custom-config.json
 										fi
 										customconfig=
 										if [ -f custom-config.json ] ; then
