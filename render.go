@@ -524,7 +524,7 @@ _aws() {
 }
 
 gitavoidreclone() {
-  local branch=master
+  local branch=HEAD
   if [ "$1" == "--branch" ] ; then
   branch="$2"
     shift
@@ -537,7 +537,11 @@ gitavoidreclone() {
     git checkout origin/"$branch"
     popd
   else
-    git clone --branch "$branch" "$1" "$2"
+    if [ "$branch" == "HEAD" ] ; then
+      git clone "$1" "$2"
+    else
+      git clone --branch "$branch" "$1" "$2"
+    fi
   fi
 }
 
