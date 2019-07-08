@@ -358,13 +358,6 @@ pipeline {
 								}
 							}
 						}
-						stage('attestation_setup') {
-							steps {
-								timeout(time: 5, unit: 'MINUTES') {
-									runStack(currentBuild, true, "attestation_setup")
-								}
-							}
-						}
 						stage('setup_vendor') {
 							steps {
 								timeout(time: 1, unit: 'HOURS') {
