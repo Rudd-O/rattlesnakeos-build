@@ -239,7 +239,7 @@ pipeline {
 						stage("Stack") {
 							steps {
 								script {
-									sh '''#!/bin/bash -e
+									sh '''#!/bin/bash -ex
 										env
 										ignoreversionchecks=
 										if [ "$IGNORE_VERSION_CHECKS" == "true" ] ; then
@@ -256,7 +256,7 @@ pipeline {
 										fi
 										customconfig=
 										if [ -f custom-config.json ] ; then
-											customconfig="-custom-config custom-config.json"
+											customconfig="-custom-config $HOME/custom-config.json"
 										fi
 										set -x
 										GOPATH="$PWD/upstream/rattlesnakeos-stack" go run render.go -output stack-builder \\
