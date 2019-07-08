@@ -299,7 +299,7 @@ pipeline {
 						}
 						stage('check_chromium') {
 							steps {
-								timeout(time: 24, unit: 'HOURS') {
+								timeout(time: 5, unit: 'MINUTES') {
 									runStack(currentBuild, true, "check_chromium")
 								}
 							}
@@ -311,7 +311,7 @@ pipeline {
 								}
 							}
 							steps {
-								timeout(time: 24, unit: 'HOURS') {
+								timeout(time: 6, unit: 'HOURS') {
 									runStack(currentBuild, true, "fetch_chromium")
 								}
 							}
@@ -323,14 +323,14 @@ pipeline {
 								}
 							}
 							steps {
-								timeout(time: 24, unit: 'HOURS') {
+								timeout(time: 12, unit: 'HOURS') {
 									runStack(currentBuild, true, "build_chromium")
 								}
 							}
 						}
 						stage('aosp_repo_init') {
 							steps {
-								timeout(time: 30, unit: 'MINUTES') {
+								timeout(time: 1, unit: 'HOURS') {
 									runStack(currentBuild, true, "aosp_repo_init")
 								}
 							}
@@ -344,7 +344,7 @@ pipeline {
 						}
 						stage('aosp_repo_sync') {
 							steps {
-								timeout(time: 3, unit: 'HOURS') {
+								timeout(time: 6, unit: 'HOURS') {
 									runStack(currentBuild, true, "aosp_repo_sync")
 								}
 							}
