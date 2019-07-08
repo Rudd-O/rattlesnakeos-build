@@ -205,9 +205,7 @@ pipeline {
 							}
 							steps {
 								script {
-									dir("s3") {
-										deleteDir()
-									}
+									sh 'rm -rf s3/*-release'
 									try {
 										copyArtifacts(
 											projectName: JOB_NAME,
@@ -409,7 +407,6 @@ pipeline {
 				dir('s3') {
 					deleteDir()
 				}
-				sh 'rm -rf s3'
 				copyArtifacts(
 					projectName: JOB_NAME,
 					selector: specific(BUILD_NUMBER),
