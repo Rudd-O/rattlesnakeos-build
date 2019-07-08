@@ -248,7 +248,7 @@ set -x
 build_chromium() {
   if [ ! -f chromium-build-needed ] ; then return 0 ; fi
 
-  cd src
+  cd $HOME/chromium/src
 
   log_header ${FUNCNAME}
 
@@ -465,8 +465,10 @@ _aws() {
 	if [[ $7 == --message=* ]]
 	then
 		echo "${7#--message=}" | sed 's/^/aws_notify: /' >&2
+		echo "$(dumpcustomconfig)" | sed 's/^/custom_config: /' >&2
 	else
 		echo "$8" | sed 's/^/aws_notify: /' >&2
+		echo "$(dumpcustomconfig)" | sed 's/^/custom_config: /' >&2
 	fi
   elif [ "$func" == "s3" ]
   then
@@ -562,9 +564,9 @@ giterate() {
 }
 
 dumpcustomconfig() {
-  if [ -f "$HOME"/custom-config.json ] ; then
+  if [ -n "$CUSTOM_CONFIG" ] ; then
       echo "  Custom configuration:"
-      cat "$HOME"/custom-config.json | sed 's/^/    /'
+      echo "$CUSTOM_CONFIG" | sed 's/^/    /'
   else
       echo "No custom configuration."
   fi
