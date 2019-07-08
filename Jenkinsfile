@@ -45,7 +45,7 @@ def runStack(currentBuild, actually_build, stage="") {
 			ret=0
 			# We disable build number to prevent unnecessary regeneration of code.
 			# Jenkins manages its build number separately from the Android build.
-			NINJA_STATUS="[%f/%t/%o/%e] " JENKINS_BUILD_NUMBER=\$BUILD_NUMBER BUILD_NUMBER= BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 eatmydata bash stack-builder "\$DEVICE" 2>&1 | tee android-build.log || ret=\$?
+			NINJA_STATUS="[%f/%t/%o/%e]	" JENKINS_BUILD_NUMBER=\$BUILD_NUMBER BUILD_NUMBER= BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 eatmydata bash stack-builder "\$DEVICE" 2>&1 | tee android-build.log || ret=\$?
 			if [ ${onlyReport} == false -o \$ret != 0 ] ; then
 				echo "===============Trace of Bash commands===============" >&2
 				cat bash.trace >&2
@@ -250,11 +250,11 @@ pipeline {
 											hostsfileurl="-hosts-file-url $HOSTS_FILE_URL"
 										fi
 										if [ "$CUSTOM_CONFIG" != "" ] ; then
-											echo "$CUSTOM_CONFIG" > "$HOME"/custom-config.json
+											echo "$CUSTOM_CONFIG" > custom-config.json
 										fi
 										customconfig=
-										if [ -f "$HOME"/custom-config.json ] ; then
-											customconfig="-custom-config $HOME/custom-config.json"
+										if [ -f custom-config.json ] ; then
+											customconfig="-custom-config custom-config.json"
 										fi
 										set -x
 										GOPATH="$PWD/upstream/rattlesnakeos-stack" go run render.go -output stack-builder \\
