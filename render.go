@@ -584,7 +584,7 @@ dumpcustomconfig() {
     custom=1
   <% range $i, $r := .CustomPatches %>
     <% range $r.Patches %>
-      echo "    Patch repo=<% $r.Repo %> patch=<% $i %>"
+      echo "    Patch repo=<% $r.Repo %> patch=<% . %>"
     <% end %>
   <% end %>
   <% end %>
@@ -593,7 +593,15 @@ dumpcustomconfig() {
     custom=1
   <% range $i, $r := .CustomScripts %>
     <% range $r.Scripts %>
-      echo "    Script repo=<% $r.Repo %> script=<% $i %>"
+      echo "    Script repo=<% $r.Repo %> script=<% . %>"
+    <% end %>
+  <% end %>
+  <% end %>
+
+  <% if .CustomPrebuilts %>
+  <% range $i, $r := .CustomPrebuilts %>
+    <% range .Modules %>
+      echo "    Prebuilt repo=<% $r.Repo %> PRODUCT_PACKAGES=<% . %>"
     <% end %>
   <% end %>
   <% end %>
