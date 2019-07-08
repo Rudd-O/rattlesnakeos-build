@@ -253,7 +253,7 @@ pipeline {
 											echo "$CUSTOM_CONFIG" > "$HOME"/custom-config.json
 										fi
 										customconfig=
-										if [ -f custom-config.json ] ; then
+										if [ -f "$HOME"/custom-config.json ] ; then
 											customconfig="-custom-config $HOME/custom-config.json"
 										fi
 										set -x
