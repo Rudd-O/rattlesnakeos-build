@@ -108,6 +108,21 @@ set -x
 			-1,
 		},
 		{
+			`> out/Default/args.gn`,
+			`> out/Default/args.gn.new`,
+			-1,
+		},
+		{
+			`gn gen out/Default`,
+			`if ! cmp out/Default/args.gn out/Default/args.gn.new ; then
+    mv -f out/Default/args.gn.new out/Default/args.gn
+  else
+    rm -f out/Default/args.gn.new
+  fi
+  gn gen out/Default`,
+			-1,
+		},
+		{
 			`  # upload to s3 for future builds
   aws s3 cp "${BUILD_DIR}/external/chromium/prebuilt/arm64/MonochromePublic.apk" "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk"`,
 			`  # Suppressed copy to S3 as that has happened already - now we just save the built revision to S3`,
