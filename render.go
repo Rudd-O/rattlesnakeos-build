@@ -80,7 +80,7 @@ set -x
 		{
 			`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1 || true`,
 			`repo init --manifest-url "$MANIFEST_URL" --manifest-branch "$AOSP_BRANCH" --depth 1
-  set +x ; gitcleansources ; set -x`,
+  quiet gitcleansources`,
 			-1,
 		},
 		{
@@ -359,6 +359,13 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			`set +x ; source build/envsetup.sh ; set -x`,
 			-1,
 		},
+                {
+                        `patch_vendor_security_level`,
+                        `patch_vendor_security_level
+  # As a final step, restore timestamps.
+  quiet gitrestoretimestamps`,
+                        -1,
+                },
 		{
 			`"$(wget -O - "${RELEASE_URL}/${RELEASE_CHANNEL}")"`,
 			`"$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/${RELEASE_CHANNEL}" -)"`,
@@ -744,10 +751,6 @@ initial_key_setup() {
 
 gen_keys() {
   log_header "${FUNCNAME} (overridden)"
-
-  pushd ${BUILD_DIR}
-  gitrestoretimestamps
-  popd
 
   if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
     gen_verity_key "${DEVICE}"
