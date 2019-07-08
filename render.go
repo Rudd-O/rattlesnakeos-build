@@ -548,14 +548,12 @@ giterate() {
 }
 
 dumpcustomconfig() {
-  pushd ${BUILD_DIR} >/dev/null 2>&1
-  if [ -f custom-config.json ] ; then
+  if [ -f ${HOME}/custom-config.json ] ; then
       echo "  Custom configuration:"
-      cat custom-config.json | sed 's/^/    /'
+      cat ${HOME}/custom-config.json | sed 's/^/    /'
   else
       echo "No custom configuration."
   fi
-  popd >/dev/null 2>&1
 }
 
 gitcleansource() {

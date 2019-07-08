@@ -250,7 +250,9 @@ pipeline {
 											hostsfileurl="-hosts-file-url $HOSTS_FILE_URL"
 										fi
 										if [ "$CUSTOM_CONFIG" != "" ] ; then
-											echo "$CUSTOM_CONFIG" > custom-config.json
+											echo "$CUSTOM_CONFIG" > "$HOME"/custom-config.json
+										else
+											rm -f "$HOME"/custom-config.json
 										fi
 										customconfig=
 										if [ -f custom-config.json ] ; then
