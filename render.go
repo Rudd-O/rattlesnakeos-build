@@ -181,7 +181,6 @@ set -x
 			`fetch_chromium() {
 
   if [ ! -f chromium-build-needed ] ; then return 0 ; fi
-  cd src
 `,
 			-1,
 		},
@@ -248,6 +247,8 @@ set -x
 
 build_chromium() {
   if [ ! -f chromium-build-needed ] ; then return 0 ; fi
+
+  cd src
 
   log_header ${FUNCNAME}
 
