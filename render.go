@@ -92,6 +92,17 @@ set -x
 			-1,
 		},
 		{
+			`if [ "$LATEST_CHROMIUM" == "$current" ]; then`,
+			`if [ "$LATEST_CHROMIUM" == "$current" ]; then
+    rm -f chromium-build-needed`,
+			-1,
+		},
+		{
+			`CHROMIUM_REVISION=$1`,
+			`CHROMIUM_REVISION=${LATEST_CHROMIUM}`,
+			-1,
+		},
+		{
 			`cp out/Default/apks/MonochromePublic.apk ${BUILD_DIR}/external/chromium/prebuilt/arm64/`,
 			`aws s3 cp out/Default/apks/MonochromePublic.apk "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk"`,
 			-1,
@@ -105,17 +116,6 @@ set -x
 		{
 			`aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" ${BUILD_DIR}/external/chromium/prebuilt/arm64/`,
 			`# Suppressed copy from S3 to external/prebuilt/arm64/ as this happens later`,
-			-1,
-		},
-		{
-			`log "Chromium latest: $LATEST_CHROMIUM"`,
-			`# Must redo what check_for_new_versions does in order to get the right pinned version.
-  if [ ! -z "$CHROMIUM_PINNED_VERSION" ]; then
-    log "Setting LATEST_CHROMIUM to pinned version $CHROMIUM_PINNED_VERSION"
-    LATEST_CHROMIUM="$CHROMIUM_PINNED_VERSION"
-  fi
-  log "Chromium latest: $LATEST_CHROMIUM"
-`,
 			-1,
 		},
 		{
@@ -159,6 +159,19 @@ set -x
     touch .fetched
     cd src
   }`,
+			-1,
+		},
+		{
+			`build_chromium() {`,
+			`fetch_chromium() {
+
+  if [ ! -f chromium-build-needed ] ; then return 0 ; fi
+`,
+			-1,
+		},
+		{
+			`build_chromium $LATEST_CHROMIUM`,
+			`touch chromium-build-needed`,
 			-1,
 		},
 		{
@@ -215,6 +228,18 @@ set -x
 
       echo "$currdepsrev" > ../.depsrev
   fi
+}
+
+build_chromium() {
+  if [ ! -f chromium-build-needed ] ; then return 0 ; fi
+
+  log_header ${FUNCNAME}
+
+  CHROMIUM_REVISION=${LATEST_CHROMIUM}
+  DEFAULT_VERSION=$(echo $CHROMIUM_REVISION | awk -F"." '{ printf "%s%03d52\n",$3,$4}')
+
+  export PATH="$PATH:$HOME/depot_tools"
+
 `,
 			-1,
 		},
@@ -644,6 +669,11 @@ EOF
 
 reload_latest_versions() {
   source s3/interstage/env.$JENKINS_BUILD_NUMBER.save
+  # Must redo what check_for_new_versions does in order to get the right pinned version.
+  if [ ! -z "$CHROMIUM_PINNED_VERSION" ]; then
+    log "Setting LATEST_CHROMIUM to pinned version $CHROMIUM_PINNED_VERSION"
+    LATEST_CHROMIUM="$CHROMIUM_PINNED_VERSION"
+  fi
 }
 
 get_encryption_key() {
@@ -698,6 +728,10 @@ full_run() {
       if [ "${DEVICE}" == "marlin" ] || [ "${DEVICE}" == "sailfish" ]; then
         "$STAGE"
       fi
+    elif [ "$STAGE" == "attestation_setup" ] ; then
+      if [ "${ENABLE_ATTESTATION}" == "true" ]; then
+        attestation_setup
+      fi
     else
       "$STAGE"
     fi
@@ -707,10 +741,15 @@ full_run() {
     aws_notify "RattlesnakeOS Build STARTED"
     setup_env
     check_chromium
+    fetch_chromium
+    build_chromium
     aosp_repo_init
     aosp_repo_modifications
     aosp_repo_sync
     aws_import_keys
+    if [ "${ENABLE_ATTESTATION}" == "true" ]; then
+      attestation_setup
+    fi
     setup_vendor
     apply_patches
     # only marlin and sailfish need kernel rebuilt so that verity_key is included

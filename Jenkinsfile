@@ -304,6 +304,30 @@ pipeline {
 								}
 							}
 						}
+						stage('fetch_chromium') {
+							when {
+								expression {
+									return fileExists('chromium-build-needed')
+								}
+							}
+							steps {
+								timeout(time: 24, unit: 'HOURS') {
+									runStack(currentBuild, true, "fetch_chromium")
+								}
+							}
+						}
+						stage('build_chromium') {
+							when {
+								expression {
+									return fileExists('chromium-build-needed')
+								}
+							}
+							steps {
+								timeout(time: 24, unit: 'HOURS') {
+									runStack(currentBuild, true, "build_chromium")
+								}
+							}
+						}
 						stage('aosp_repo_init') {
 							steps {
 								timeout(time: 30, unit: 'MINUTES') {
@@ -329,6 +353,13 @@ pipeline {
 							steps {
 								timeout(time: 15, unit: 'MINUTES') {
 									runStack(currentBuild, true, "aws_import_keys")
+								}
+							}
+						}
+						stage('attestation_setup') {
+							steps {
+								timeout(time: 5, unit: 'MINUTES') {
+									runStack(currentBuild, true, "attestation_setup")
 								}
 							}
 						}
