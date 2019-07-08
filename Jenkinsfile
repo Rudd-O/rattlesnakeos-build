@@ -180,6 +180,7 @@ pipeline {
 							steps {
 								dir("s3/rattlesnakeos-keys") {
 									unstash 'keys'
+									sh 'pwd && ls -la'
 								}
 								dir("upstream/rattlesnakeos-stack") {
 									deleteDir()
