@@ -564,10 +564,41 @@ giterate() {
 }
 
 dumpcustomconfig() {
-  if [ -n "$CUSTOM_CONFIG" ] ; then
-      echo "  Custom configuration:"
-      echo "$CUSTOM_CONFIG" | sed 's/^/    /'
-  else
+  local custom=
+  echo "Custom configuration:"
+
+  <% if .CustomManifestRemotes %>
+  custom=1
+  <% range $i, $r := .CustomManifestRemotes %>
+    echo "    Remote name=<% .Name %> fetch=<% .Fetch %> revision=<% .Revision %>"
+  <% end %>
+  <% end %>
+
+  <% if .CustomManifestProjects %><% range $i, $r := .CustomManifestProjects %>
+    custom=1
+    echo "    Project path=<% .Path %> name=<% .Name %> remote=<% .Remote %>"
+  <% end %>
+  <% end %>
+
+  <% if .CustomPatches %>
+    custom=1
+  <% range $i, $r := .CustomPatches %>
+    <% range $r.Patches %>
+      echo "    Patch repo=<% $r.Repo %> patch=<% $i %>"
+    <% end %>
+  <% end %>
+  <% end %>
+
+  <% if .CustomScripts %>
+    custom=1
+  <% range $i, $r := .CustomScripts %>
+    <% range $r.Scripts %>
+      echo "    Script repo=<% $r.Repo %> script=<% $i %>"
+    <% end %>
+  <% end %>
+  <% end %>
+
+  if [ -z "$custom" ] ; then
       echo "No custom configuration."
   fi
 }
