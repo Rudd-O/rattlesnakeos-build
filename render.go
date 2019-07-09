@@ -360,10 +360,13 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			-1,
 		},
                 {
-                        `patch_vendor_security_level`,
                         `patch_vendor_security_level
+`,
+                        `patch_vendor_security_level
+
   # As a final step, restore timestamps.
-  quiet gitrestoretimestamps`,
+  quiet gitrestoretimestamps
+`,
                         -1,
                 },
 		{
