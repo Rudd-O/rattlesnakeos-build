@@ -571,9 +571,11 @@ giterate() {
 	local ret=0
 	local cmd="$1"
 	shift
+	>&2 echo giterate "$@" in "$PWD"
 	for gitdir in $(find -name .git -type d) ; do
 		pushd "$gitdir/.." >/dev/null || continue
-		"$cmd" "$@" || ret=$?
+		local d=$(dirname "$gitdir")
+		"$cmd" "$@" 2> >(sed "s|^|$d: |") || ret=$?
 		popd >/dev/null
 		if [ "$ret" != "0" ] ; then return "$ret" ; fi
 	done
@@ -651,12 +653,12 @@ gitcleansource() {
                 echo "$sum $timestamp $filename" >> .git/timestampsums
 	done < <(git status --ignored --porcelain)
 	if [ -f .git/timestampsums ] ; then
-		echo "$PWD: has modifications" >&2
+		echo "has modifications" >&2
 		cat .git/timestampsums >&2
 		git clean -fxd || return $?
 		git reset --hard || return $?
 	else
-                echo "$PWD: does not have modifications" >&2
+                echo "does not have modifications" >&2
         fi
 }
 
@@ -670,14 +672,14 @@ gitrestoretimestamp() {
 	local actualsum
 	local actualtimestamp
 	test -f .git/timestampsums || {
-                echo "time restore $PWD: nothing to restore" >&2
+                echo "time restore: nothing to restore" >&2
                 return 0
         }
 	while read sum date time timezone filename ; do
 		# If the file does not exist or is not a file,
 		# don't bother restoring the timestamp
 		test -f "$filename" || {
-                    echo "time restore $PWD: $filename does not exist" >&2
+                    echo "time restore: $filename does not exist" >&2
                     continue
                 }
 		timestamp="$date $time $timezone"
@@ -685,22 +687,22 @@ gitrestoretimestamp() {
 		actualtimestamp=$(stat -c %y "$filename")
 		# If the file has changed, it has earned its mtime.
 		if [ "$sum" != "$actualsum" ] ; then
-                    echo "time restore $PWD: $filename sum differs" >&2
+                    echo "time restore: $filename sum differs" >&2
                     continue
                 fi
 		# If the file says "no time stamp", the file did not exist,
 		# cannot restore timestamp.
 		if [ "$timestamp" == "no time stamp" ] ; then
-                    echo "time restore $PWD: $filename has no timestamp" >&2
+                    echo "time restore: $filename has no timestamp" >&2
                     continue
                 fi
 		# If the file has the same time stamp as before,
 		# don't bother restoring it.
 		if [ "$timestamp" == "$actualtimestamp" ] ; then
-                    echo "time restore $PWD: $filename has kept its timestamp" >&2
+                    echo "time restore: $filename has kept its timestamp" >&2
                     continue
                 fi
-		echo "time restore $PWD: $filename unchanged, mtime differs, restoring" >&2
+		echo "time restore: $filename unchanged, mtime differs, restoring" >&2
 		touch -d "$timestamp" "$filename"
 	done < <(cat .git/timestampsums)
 }
