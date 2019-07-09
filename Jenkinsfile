@@ -64,7 +64,8 @@ def runStack(currentBuild, actuallyBuild, stage="") {
 		throw error
 	}
 	return sh(
-		script: 'cat android-build.log',
+		script: '''#!/bin/sh
+		cat android-build.log''',
 		returnStdout: true
 	).trim()
 }
