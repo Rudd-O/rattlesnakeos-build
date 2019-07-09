@@ -310,7 +310,7 @@ pipeline {
 											copyArtifacts(
 												projectName: JOB_NAME,
 												selector: lastSuccessful(),
-												includes: '**/MonochromePublic.apk'
+												filter: '**/MonochromePublic.apk'
 											)
 											sh 'ls -l s3/rattlesnakeos-release/chromium'
 											env.SHOULD_BUILD_CHROMIUM = "no"
