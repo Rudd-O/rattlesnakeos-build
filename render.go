@@ -181,6 +181,13 @@ set -x
 			-1,
 		},
 		{
+			`if [ "$LATEST_CHROMIUM" == "$current" ]; then`,
+			`if [ "$IGNORE_VERSION_CHECKS" = true ] ; then
+    log "No Chromium build is required, but IGNORE_VERSION_CHECKS=true -- building Chromium $LATEST_CHROMIUM"
+  elif [ "$LATEST_CHROMIUM" == "$current" ]; then`,
+			-1,
+		},
+		{
 			`# checkout specific revision
   git checkout "$CHROMIUM_REVISION" -f
 
