@@ -302,7 +302,7 @@ pipeline {
 						stage('fetch_chromium') {
 							when {
 								expression {
-									return fileExists('chromium-build-needed')
+									return fileExists('chromium-fetch-needed')
 								}
 							}
 							steps {

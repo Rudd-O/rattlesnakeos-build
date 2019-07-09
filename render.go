@@ -94,8 +94,10 @@ set -x
 		{
 			`if [ "$LATEST_CHROMIUM" == "$current" ]; then`,
 			`if [ "$LATEST_CHROMIUM" == "$current" ]; then
+    rm -f chromium-fetch-needed
     rm -f chromium-build-needed
     # Temporarily disabling this to test incremental Chromium builds.
+    touch chromium-fetch-needed
     touch chromium-build-needed`,
 			-1,
 		},
@@ -182,13 +184,14 @@ set -x
 			`build_chromium() {`,
 			`fetch_chromium() {
 
-  if [ ! -f chromium-build-needed ] ; then return 0 ; fi
+  if [ ! -f chromium-fetch-needed ] ; then return 0 ; fi
 `,
 			-1,
 		},
 		{
 			`build_chromium $LATEST_CHROMIUM`,
-			`touch chromium-build-needed`,
+			`touch chromium-fetch-needed
+    touch chromium-build-needed`,
 			-1,
 		},
 		{
