@@ -57,7 +57,9 @@ def runStack(currentBuild, actuallyBuild, stage="") {
 			).trim()))
 			currentBuild.description = currentBuild.description + description
 		}
-	} catch(error) {
+	} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException interruptEx) {
+		throw interruptEx
+	} catch (error) {
 		currentBuild.description = "<p>Failed in ${phase} phase: ${error}.</p>" + currentBuild.description
 		throw error
 	}
@@ -208,6 +210,8 @@ pipeline {
 												selector: lastSuccessful(),
 												excludes: '**/*tar.xz,**/*.zip,**/*.apk'
 											)
+										} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException interruptEx) {
+											throw interruptEx
 										} catch (e) {
 											println "Artifacts from last successful build does not exist (${e}).  Continuing."
 										}
@@ -314,8 +318,9 @@ pipeline {
 											)
 											sh 'ls -l s3/rattlesnakeos-release/chromium'
 											env.SHOULD_BUILD_CHROMIUM = "no"
-										}
-										catch(e) {
+										} catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException interruptEx) {
+											throw interruptEx
+										} catch (e) {
 											println "MonochromePublic.apk from last successful build does not exist (${e}).  Continuing."
 										}
 									}
