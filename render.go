@@ -361,6 +361,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
                         `patch_vendor_security_level
 
   # As a final step, restore timestamps.
+  cd ${BUILD_DIR}  # For some reason we are in the wrong dir at this point.
   quiet gitrestoretimestamps
 `,
                         -1,
