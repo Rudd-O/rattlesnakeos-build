@@ -579,7 +579,7 @@ giterate() {
 
 dumpcustomconfig() {
   local custom=
-  echo "Custom configuration:"
+  echo "  Custom configuration:"
 
   <% if .CustomManifestRemotes %>
   custom=1
