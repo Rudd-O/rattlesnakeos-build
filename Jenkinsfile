@@ -199,16 +199,18 @@ pipeline {
 								}
 							}
 							steps {
-								script {
-									sh 'rm -rf s3/*-release'
-									try {
-										copyArtifacts(
-											projectName: JOB_NAME,
-											selector: lastSuccessful(),
-											excludes: '**/*tar.xz,**/*.zip,**/*.apk'
-										)
-									} catch (e) {
-										println "Artifacts from last successful build does not exist (${e}).  Continuing."
+								timeout(time: 10, unit: 'MINUTES') {
+									script {
+										sh 'rm -rf s3/*-release'
+										try {
+											copyArtifacts(
+												projectName: JOB_NAME,
+												selector: lastSuccessful(),
+												excludes: '**/*tar.xz,**/*.zip,**/*.apk'
+											)
+										} catch (e) {
+											println "Artifacts from last successful build does not exist (${e}).  Continuing."
+										}
 									}
 								}
 							}
