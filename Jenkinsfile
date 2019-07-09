@@ -44,7 +44,7 @@ def runStack(currentBuild, actuallyBuild, stage="") {
 		ret=0
 		# We disable build number to prevent unnecessary regeneration of code.
 		# Jenkins manages its build number separately from the Android build.
-		NINJA_STATUS="[%f/%t/%o/%e]	" JENKINS_BUILD_NUMBER=\$BUILD_NUMBER BUILD_NUMBER= BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 bash stack-builder "\$DEVICE" 2>&1 | tee android-build.log || ret=\$?
+		NINJA_STATUS="[%f/%t/%o/%e]	" JENKINS_BUILD_NUMBER=\$BUILD_NUMBER BUILD_NUMBER= BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 bash stack-builder "\$DEVICE" 2>&1 | tee android-build.log | sed 's/^/${stage}:	/' || ret=\$?
 		if [ ${onlyReport} == false -o \$ret != 0 ] ; then
 			sed 's/^/${stage} trace:	/' bash.trace >&2
 		fi
