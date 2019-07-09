@@ -46,9 +46,7 @@ def runStack(currentBuild, actuallyBuild, stage="") {
 		# Jenkins manages its build number separately from the Android build.
 		NINJA_STATUS="[%f/%t/%o/%e]	" JENKINS_BUILD_NUMBER=\$BUILD_NUMBER BUILD_NUMBER= BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 bash stack-builder "\$DEVICE" 2>&1 | tee android-build.log || ret=\$?
 		if [ ${onlyReport} == false -o \$ret != 0 ] ; then
-			echo "===============Trace of Bash commands===============" >&2
-			cat bash.trace >&2
-			echo "=============End trace of Bash commands=============" >&2
+			sed 's/^/bash.trace (stage ${stage}):	/' bash.trace >&2
 		fi
 		exit \$ret
 		"""
