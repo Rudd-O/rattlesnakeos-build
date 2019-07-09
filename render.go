@@ -94,7 +94,9 @@ set -x
 		{
 			`if [ "$LATEST_CHROMIUM" == "$current" ]; then`,
 			`if [ "$LATEST_CHROMIUM" == "$current" ]; then
-    rm -f chromium-build-needed`,
+    rm -f chromium-build-needed
+    # Temporarily disabling this to test incremental Chromium builds.
+    # touch chromium-build-needed`,
 			-1,
 		},
 		{
