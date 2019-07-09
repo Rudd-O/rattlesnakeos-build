@@ -741,6 +741,9 @@ BUILD_TIMESTAMP="$BUILD_TIMESTAMP"
 BUILD_REASON="$BUILD_REASON"
 AOSP_BRANCH="$AOSP_BRANCH"
 EOF
+  >&2 echo ====== This is the build environment from the standpoint of the persist ======
+  >&2 env
+  >&2 echo ====== End of the build environment from the standpoint of the persist =======
 }
 
 reload_latest_versions() {
@@ -750,6 +753,9 @@ reload_latest_versions() {
     log "Setting LATEST_CHROMIUM to pinned version $CHROMIUM_PINNED_VERSION"
     LATEST_CHROMIUM="$CHROMIUM_PINNED_VERSION"
   fi
+  >&2 echo ====== This is the build environment from the standpoint of the restore ======
+  >&2 env
+  >&2 echo ====== End of the build environment from the standpoint of the restore =======
 }
 
 get_encryption_key() {
