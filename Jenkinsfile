@@ -33,38 +33,40 @@ def runStack(currentBuild, actuallyBuild, stage="") {
 		grep -a '^aws_notify: ' android-build.log | sed 's/^aws_notify: //'
 		grep -a '^custom_config: ' android-build.log | sed 's/^custom_config: //'
 	"""
-	script {
-		try {
-			sh """#!/bin/bash -e
-			export HOME="\$PWD"
-			export TMPDIR="\$PWD/tmp"
-			mkdir -p "\$TMPDIR"
-			export DEVICE=\$(echo "${params.DEVICE}" | cut -d ' ' -f 1)
-			export STAGE=${stage}
-			set -o pipefail
-			ret=0
-			# We disable build number to prevent unnecessary regeneration of code.
-			# Jenkins manages its build number separately from the Android build.
-			NINJA_STATUS="[%f/%t/%o/%e]	" JENKINS_BUILD_NUMBER=\$BUILD_NUMBER BUILD_NUMBER= BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 eatmydata bash stack-builder "\$DEVICE" 2>&1 | tee android-build.log || ret=\$?
-			if [ ${onlyReport} == false -o \$ret != 0 ] ; then
-				echo "===============Trace of Bash commands===============" >&2
-				cat bash.trace >&2
-				echo "=============End trace of Bash commands=============" >&2
-			fi
-			exit \$ret
-			"""
-			if (!actuallyBuild) {
-				def description = funcs.wrapPre(funcs.escapeXml(sh (
-					script: grepper,
-					returnStdout: true
-				).trim()))
-				currentBuild.description = currentBuild.description + description
-			}
-		} catch(error) {
-			currentBuild.description = "<p>Failed in ${phase} phase: ${error}.</p>" + currentBuild.description
-			throw error
+	try {
+		sh """#!/bin/bash -e
+		export HOME="\$PWD"
+		export TMPDIR="\$PWD/tmp"
+		mkdir -p "\$TMPDIR"
+		export DEVICE=\$(echo "${params.DEVICE}" | cut -d ' ' -f 1)
+		export STAGE=${stage}
+		set -o pipefail
+		ret=0
+		# We disable build number to prevent unnecessary regeneration of code.
+		# Jenkins manages its build number separately from the Android build.
+		NINJA_STATUS="[%f/%t/%o/%e]	" JENKINS_BUILD_NUMBER=\$BUILD_NUMBER BUILD_NUMBER= BASH_TRACE=bash.trace ONLY_REPORT=${onlyReport} ionice -c3 eatmydata bash stack-builder "\$DEVICE" 2>&1 | tee android-build.log || ret=\$?
+		if [ ${onlyReport} == false -o \$ret != 0 ] ; then
+			echo "===============Trace of Bash commands===============" >&2
+			cat bash.trace >&2
+			echo "=============End trace of Bash commands=============" >&2
+		fi
+		exit \$ret
+		"""
+		if (!actuallyBuild) {
+			def description = funcs.wrapPre(funcs.escapeXml(sh (
+				script: grepper,
+				returnStdout: true
+			).trim()))
+			currentBuild.description = currentBuild.description + description
 		}
+	} catch(error) {
+		currentBuild.description = "<p>Failed in ${phase} phase: ${error}.</p>" + currentBuild.description
+		throw error
 	}
+	return sh(
+		script: 'cat android-build.log',
+		returnStdout: true
+	).trim()
 }
 
 // https://github.com/Rudd-O/shared-jenkins-libraries
@@ -205,10 +207,10 @@ pipeline {
 										copyArtifacts(
 											projectName: JOB_NAME,
 											selector: lastSuccessful(),
-											excludes: '**/*tar.xz,**/*.zip'
+											excludes: '**/*tar.xz,**/*.zip,**/*.apk'
 										)
-									} catch (hudson.AbortException e) {
-										println "Artifacts from last build do not exist.  Continuing."
+									} catch (e) {
+										println "Artifacts from last successful build does not exist (${e}).  Continuing."
 									}
 								}
 							}
@@ -267,11 +269,11 @@ pipeline {
 						stage('Describe') {
 							steps {
 								timeout(time: 5, unit: 'MINUTES') {
-									runStack(currentBuild, false)
-								}
-								script {
-									if (currentBuild.description.contains("build not required")) {
-										currentBuild.result = 'NOT_BUILT'
+									script {
+										def buildLog = runStack(currentBuild, false)
+										if (currentBuild.description.contains("build not required")) {
+											currentBuild.result = 'NOT_BUILT'
+										}
 									}
 								}
 							}
@@ -288,115 +290,162 @@ pipeline {
 						stage('setup_env') {
 							steps {
 								timeout(time: 1, unit: 'HOURS') {
-									runStack(currentBuild, true, "setup_env")
+									script {
+										runStack(currentBuild, true, "setup_env")
+									}
 								}
 							}
 						}
 						stage('check_chromium') {
 							steps {
-								timeout(time: 5, unit: 'MINUTES') {
-									runStack(currentBuild, true, "check_chromium")
+								script {
+									def buildLog = ""
+									env.SHOULD_BUILD_CHROMIUM = "yes"
+									timeout(time: 10, unit: 'MINUTES') {
+										buildLog = runStack(currentBuild, true, "check_chromium")
+									}
+									if (buildLog.contains("just copying s3 chromium artifact")) {
+										println "Copying MonochromePublic.apk from last successful build."
+										try {
+											copyArtifacts(
+												projectName: JOB_NAME,
+												selector: lastSuccessful(),
+												includes: '**/MonochromePublic.apk'
+											)
+											sh 'ls -l s3/rattlesnakeos-release/chromium'
+											env.SHOULD_BUILD_CHROMIUM = "no"
+										}
+										catch(e) {
+											println "MonochromePublic.apk from last successful build does not exist (${e}).  Continuing."
+										}
+									}
 								}
 							}
 						}
 						stage('fetch_chromium') {
 							when {
 								expression {
-									return fileExists('chromium-fetch-needed')
+									return env.SHOULD_BUILD_CHROMIUM == "yes"
 								}
 							}
 							steps {
 								timeout(time: 6, unit: 'HOURS') {
-									runStack(currentBuild, true, "fetch_chromium")
+									script {
+										runStack(currentBuild, true, "fetch_chromium")
+									}
 								}
 							}
 						}
 						stage('build_chromium') {
 							when {
 								expression {
-									return fileExists('chromium-build-needed')
+									return env.SHOULD_BUILD_CHROMIUM == "yes"
 								}
 							}
 							steps {
 								timeout(time: 12, unit: 'HOURS') {
-									runStack(currentBuild, true, "build_chromium")
+									script {
+										runStack(currentBuild, true, "build_chromium")
+									}
 								}
 							}
 						}
 						stage('aosp_repo_init') {
 							steps {
 								timeout(time: 1, unit: 'HOURS') {
-									runStack(currentBuild, true, "aosp_repo_init")
+									script {
+										runStack(currentBuild, true, "aosp_repo_init")
+									}
 								}
 							}
 						}
 						stage('aosp_repo_modifications') {
 							steps {
 								timeout(time: 30, unit: 'MINUTES') {
-									runStack(currentBuild, true, "aosp_repo_modifications")
+									script {
+										runStack(currentBuild, true, "aosp_repo_modifications")
+									}
 								}
 							}
 						}
 						stage('aosp_repo_sync') {
 							steps {
 								timeout(time: 6, unit: 'HOURS') {
-									runStack(currentBuild, true, "aosp_repo_sync")
+									script {
+										runStack(currentBuild, true, "aosp_repo_sync")
+									}
 								}
 							}
 						}
 						stage('aws_import_keys') {
 							steps {
 								timeout(time: 15, unit: 'MINUTES') {
-									runStack(currentBuild, true, "aws_import_keys")
+									script {
+										runStack(currentBuild, true, "aws_import_keys")
+									}
 								}
 							}
 						}
 						stage('setup_vendor') {
 							steps {
 								timeout(time: 1, unit: 'HOURS') {
-									runStack(currentBuild, true, "setup_vendor")
+									script {
+										runStack(currentBuild, true, "setup_vendor")
+									}
 								}
 							}
 						}
 						stage('apply_patches') {
 							steps {
 								timeout(time: 30, unit: 'MINUTES') {
-									runStack(currentBuild, true, "apply_patches")
+									script {
+										runStack(currentBuild, true, "apply_patches")
+									}
 								}
 							}
 						}
 						stage('rebuild_marlin_kernel') {
 							steps {
 								timeout(time: 3, unit: 'HOURS') {
-									runStack(currentBuild, true, "rebuild_marlin_kernel")
+									script {
+										runStack(currentBuild, true, "rebuild_marlin_kernel")
+									}
 								}
 							}
 						}
 						stage('build_aosp') {
 							steps {
 								timeout(time: 24, unit: 'HOURS') {
-									runStack(currentBuild, true, "build_aosp")
+									script {
+										runStack(currentBuild, true, "build_aosp")
+									}
 								}
 							}
 						}
 						stage('release') {
 							steps {
 								timeout(time: 60, unit: 'MINUTES') {
-									runStack(currentBuild, true, "release")
+									script {
+										runStack(currentBuild, true, "release")
+									}
 								}
 							}
 						}
 						stage('aws_upload') {
 							steps {
 								timeout(time: 30, unit: 'MINUTES') {
-									runStack(currentBuild, true, "aws_upload")
+									script {
+										runStack(currentBuild, true, "aws_upload")
+									}
 								}
 							}
 						}
 						stage('checkpoint_versions') {
 							steps {
 								timeout(time: 5, unit: 'MINUTES') {
-									runStack(currentBuild, true, "checkpoint_versions")
+									script {
+										runStack(currentBuild, true, "checkpoint_versions")
+									}
 								}
 							}
 						}

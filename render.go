@@ -92,16 +92,6 @@ set -x
 			-1,
 		},
 		{
-			`if [ "$LATEST_CHROMIUM" == "$current" ]; then`,
-			`if [ "$LATEST_CHROMIUM" == "$current" ]; then
-    rm -f chromium-fetch-needed
-    rm -f chromium-build-needed
-    # Temporarily disabling this to test incremental Chromium builds.
-    touch chromium-fetch-needed
-    touch chromium-build-needed`,
-			-1,
-		},
-		{
 			`CHROMIUM_REVISION=$1`,
 			`CHROMIUM_REVISION=${LATEST_CHROMIUM}`,
 			-1,
@@ -182,16 +172,12 @@ set -x
 		},
 		{
 			`build_chromium() {`,
-			`fetch_chromium() {
-
-  if [ ! -f chromium-fetch-needed ] ; then return 0 ; fi
-`,
+			`fetch_chromium() {`,
 			-1,
 		},
 		{
 			`build_chromium $LATEST_CHROMIUM`,
-			`touch chromium-fetch-needed
-    touch chromium-build-needed`,
+			`# disable call to build_chromium`,
 			-1,
 		},
 		{
@@ -251,8 +237,6 @@ set -x
 }
 
 build_chromium() {
-  if [ ! -f chromium-build-needed ] ; then return 0 ; fi
-
   cd $HOME/chromium/src
 
   log_header ${FUNCNAME}
