@@ -53,21 +53,15 @@ def runStack(currentBuild, actually_build, stage="") {
 			fi
 			exit \$ret
 			"""
-			def description = funcs.wrapPre(funcs.escapeXml(sh (
-				script: grepper,
-				returnStdout: true
-			).trim()))
-			if (description != "") {
-				currentBuild.description = currentBuild.description.split("<hr/>")[0] + "<hr/>" + description
+			if (!actuallyBuild) {
+				def description = funcs.wrapPre(funcs.escapeXml(sh (
+					script: grepper,
+					returnStdout: true
+				).trim()))
+				currentBuild.description = currentBuild.description + "<hr/>" + description
 			}
 		} catch(error) {
-			def description = funcs.wrapPre(funcs.escapeXml(sh (
-				script: grepper,
-				returnStdout: true
-			).trim()))
-			if (description != "") {
-				currentBuild.description = currentBuild.description.split("<hr/>")[0] + "<hr/>" + "<p>Failed in ${phase} phase: ${error}</p>." + description
-			}
+			currentBuild.description = "<p>Failed in ${phase} phase: ${error}</p>." + currentBuild.description
 			throw error
 		}
 	}
