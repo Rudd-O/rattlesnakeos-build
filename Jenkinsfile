@@ -58,10 +58,10 @@ def runStack(currentBuild, actuallyBuild, stage="") {
 					script: grepper,
 					returnStdout: true
 				).trim()))
-				currentBuild.description = currentBuild.description + "<hr/>" + description
+				currentBuild.description = currentBuild.description + description
 			}
 		} catch(error) {
-			currentBuild.description = "<p>Failed in ${phase} phase: ${error}</p>." + currentBuild.description
+			currentBuild.description = "<p>Failed in ${phase} phase: ${error}.</p>" + currentBuild.description
 			throw error
 		}
 	}
@@ -142,9 +142,6 @@ pipeline {
 							userRemoteConfigs: [[url: 'https://github.com/dan-v/rattlesnakeos-stack']]
 						])
 						updateBuildNumberDisplayName()
-						script {
-							currentBuild.description = currentBuild.description + '<hr/>'
-						}
 					}
 				}
 				stage('Stash inputs') {
