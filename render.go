@@ -556,10 +556,10 @@ gitavoidreclone() {
 }
 
 quiet() {
+	{ set +x; } 2>/dev/null
 	local r=0
 	local cmd="$1"
 	shift
-	set +x
 	"$cmd" "$@" || r="$?"
 	set -x
 	return "$r"
