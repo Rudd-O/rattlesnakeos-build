@@ -18,10 +18,10 @@ if (BUILD_TYPE != "") {
   BUILD_TYPE = ALL_BUILD_TYPES
 }
 
-def runStack(currentBuild, actually_build, stage="") {
+def runStack(currentBuild, actuallyBuild, stage="") {
 	def onlyReport = true
 	def phase = "description"
-	if (actually_build) {
+	if (actuallyBuild) {
 		onlyReport = false
 		if (stage == "") {
 			phase = "build"
