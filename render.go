@@ -317,7 +317,7 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
   # Since we just git cleaned everything, we will have to re-copy
   # the MonochromePublic.apk file from S3.
   mkdir -p ${BUILD_DIR}/external/chromium/prebuilt/arm64
-  aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" ${BUILD_DIR}/external/chromium/prebuilt/arm64/
+  aws s3 cp "s3://${AWS_RELEASE_BUCKET}/chromium/MonochromePublic.apk" ${BUILD_DIR}/external/chromium/prebuilt/arm64/MonochromePublic.apk
   `,
 			-1,
 		},
@@ -627,6 +627,10 @@ dumpcustomconfig() {
   fi
 }
 
+sum() {
+  echo $(md5sum "$1" | awk ' { print $1 } ')
+}
+
 gitcleansource() {
 	local type
 	local filename
@@ -635,7 +639,7 @@ gitcleansource() {
 	rm -f .git/timestampsums
 	while read type filename ; do
                 if [ -f "$filename" ] ; then
-                        sum=$(md5sum "$filename" | awk ' { print $1 } ')
+                        sum=$(sum "$filename")
                         timestamp=$(stat -c %y "$filename")
                 elif [ -e "$filename" ] ; then
                         sum="notafilenomd5sum"
@@ -677,7 +681,7 @@ gitrestoretimestamp() {
                     continue
                 }
 		timestamp="$date $time $timezone"
-		actualsum=$(md5sum "$filename" | awk ' { print $1 } ')
+		actualsum=$(sum "$filename")
 		actualtimestamp=$(stat -c %y "$filename")
 		# If the file has changed, it has earned its mtime.
 		if [ "$sum" != "$actualsum" ] ; then
