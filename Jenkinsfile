@@ -66,7 +66,7 @@ def runStack(currentBuild, actually_build, stage="") {
 				returnStdout: true
 			).trim()))
 			if (description != "") {
-				currentBuild.description = currentBuild.description.split("<hr/>")[0] + "<hr/>" + "<p>Failed in ${phase} phase: ${funcs.escapeXml(error)}</p>." + description
+				currentBuild.description = currentBuild.description.split("<hr/>")[0] + "<hr/>" + "<p>Failed in ${phase} phase: ${error}</p>." + description
 			}
 			throw error
 		}
