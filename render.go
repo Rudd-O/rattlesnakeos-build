@@ -649,8 +649,8 @@ gitcleansource() {
 	if [ -f .git/timestampsums ] ; then
 		echo "has modifications" >&2
 		cat .git/timestampsums >&2
-		git clean -fxd || return $?
-		git reset --hard || return $?
+		git clean -fxd >&2 || return $?
+		git reset --hard >&2 || return $?
 	else
                 echo "does not have modifications" >&2
         fi
