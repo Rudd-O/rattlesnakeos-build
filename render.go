@@ -306,6 +306,22 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			-1,
 		},
 		{
+			`build_aosp() {
+  log_header ${FUNCNAME}
+
+  cd "$BUILD_DIR"`,
+			`build_aosp() {
+  log_header ${FUNCNAME}
+
+  cd "$BUILD_DIR"
+
+  # As a prior step to building, restore timestamps.
+  pushd ${BUILD_DIR}
+  quiet gitrestoretimestamps
+  popd`,
+			-1,
+		},
+		{
 			`# make modifications to default AOSP`,
 			`# make modifications to default AOSP
   # Since we just git cleaned everything, we will have to re-copy
@@ -355,17 +371,6 @@ MARLIN_KERNEL_OUT_DIR="$HOME/kernel-out/$DEVICE"`,
 			`set +x ; source build/envsetup.sh ; set -x`,
 			-1,
 		},
-                {
-                        `patch_vendor_security_level
-`,
-                        `patch_vendor_security_level
-
-  # As a final step, restore timestamps.
-  cd ${BUILD_DIR}  # For some reason we are in the wrong dir at this point.
-  quiet gitrestoretimestamps
-`,
-                        -1,
-                },
 		{
 			`"$(wget -O - "${RELEASE_URL}/${RELEASE_CHANNEL}")"`,
 			`"$(aws s3 cp "s3://${AWS_RELEASE_BUCKET}/${RELEASE_CHANNEL}" -)"`,
