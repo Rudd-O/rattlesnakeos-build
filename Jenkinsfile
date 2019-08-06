@@ -152,8 +152,17 @@ pipeline {
 						dir("../../../keys/") {
 							stash includes: '**', name: 'keys'
 						}
-						stash includes: 'upstream/rattlesnakeos-stack/**', name: 'stack'
-						stash includes: '*.go,*.json', name: 'code'
+						dir("upstream/rattlesnakeos-stack") {
+							stash includes: '**', name: 'stack'
+						}
+						stash includes: '*.go', name: 'code'
+						script {
+							try {
+								stash includes: '*.json', name: 'config'
+							} catch(e) {
+								println "Cannot stash the JSON config file.  Assuming not present."
+							}
+						}
 					}
 				}
 			}
@@ -182,17 +191,16 @@ pipeline {
 								}
 								dir("upstream/rattlesnakeos-stack") {
 									deleteDir()
+									unstash 'stack'
+									unstash 'code'
+									script {
+										try {
+											unstash 'config'
+										} catch(e) {
+											println "Cannot unstash the JSON config file.  Assuming not present."
+										}
+									}
 								}
-								sh 'rm -rf *.go *.json'
-								unstash 'stack'
-								unstash 'code'
-								dir("upstream/rattlesnakeos-stack") {
-									sh 'ln -sf . src'
-								}
-								dir("upstream/rattlesnakeos-stack/github.com/dan-v") {
-									sh 'ln -sf ../../ rattlesnakeos-stack'
-								}
-								sh 'mv -f exports.go upstream/rattlesnakeos-stack/stack'
 							}
 						}
 						stage("Markers") {
@@ -225,7 +233,13 @@ pipeline {
 								timeout(time: 10, unit: 'MINUTES') {
 									retry(2) {
 										script {
-											funcs.aptInstall(["golang", "curl", "fuseext2"])
+											sh '''
+											test -f /etc/apt/sources.list.d/backports.list || {
+											echo "deb http://ftp.debian.org/debian stretch-backports main" | sudo tee /etc/apt/sources.list.d/backports.list
+											apt-get update
+											}
+											'''
+											funcs.aptInstall(["golang-1.11", "curl", "fuseext2"])
 										}
 										sh '''
 										mountpoint /rw && sudo mount -o remount,noatime /rw || true
@@ -243,6 +257,7 @@ pipeline {
 								script {
 									sh '''#!/bin/bash -ex
 										env
+										pushd upstream/rattlesnakeos-stack
 										ignoreversionchecks=
 										if [ "$IGNORE_VERSION_CHECKS" == "true" ] ; then
 											ignoreversionchecks=-ignore-version-checks
@@ -259,7 +274,7 @@ pipeline {
 											customconfig="-custom-config custom-config.json"
 										fi
 										set -x
-										GOPATH="$PWD/upstream/rattlesnakeos-stack" go run render.go -output stack-builder \\
+										/usr/lib/go-1.11/bin/go run render.go -output ../../stack-builder \\
 											-device "$DEVICE" \\
 											-build-type "$BUILD_TYPE" \\
 											-chromium-version "$CHROMIUM_VERSION" \\
@@ -267,6 +282,7 @@ pipeline {
 											$ignoreversionchecks \\
 											$hostsfileurl \\
 											$customconfig
+										popd
 									'''
 								}
 							}

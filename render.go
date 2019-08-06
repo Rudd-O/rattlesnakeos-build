@@ -1,14 +1,17 @@
 package main
 
 import (
+        "bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"stack"
 	"strings"
-	"templates"
+	"text/template"
+
+	"github.com/dan-v/rattlesnakeos-stack/stack"
+	"github.com/dan-v/rattlesnakeos-stack/templates"
 )
 
 func replace(text string, original string, substitution string, numReplacements int) (string, error) {
@@ -707,6 +710,36 @@ gitrestoretimestamp() {
 	done < <(cat .git/timestampsums)
 }
 
+savetimestamp() {
+	local type
+	local filename
+	local sum
+	local timestamp
+	rm -f .timestampsums
+	while read filename ; do
+                if [ "$filename" == ".timestampsums" -o "$filename" == "./.timestampsums" ] ; then
+                    continue
+                fi
+                if [ -f "$filename" ] ; then
+                        sum=$(sum "$filename")
+                        timestamp=$(stat -c %y "$filename")
+                elif [ -e "$filename" ] ; then
+                        sum="notafilenomd5sum"
+                        timestamp=$(stat -c %y "$filename")
+                else
+                        sum="deletednomd5sum"
+                        timestamp="no time stamp"
+                fi
+                echo "$sum $timestamp $filename" >> .timestampsums
+	done < <(find)
+	if [ -f .timestampsums ] ; then
+		echo "has modifications" >&2
+		wc -l .timestampsums >&2
+	else
+                echo "does not have modifications" >&2
+        fi
+}
+
 gitcleansources() {
 	giterate gitcleansource "$@"
 }
@@ -866,6 +899,25 @@ type myStackConfig struct {
 	ReleaseDownloadAddress string
 }
 
+func renderTemplate(templateStr string, params interface{}) ([]byte, error) {
+	templ, err := template.New("template").Delims("<%", "%>").Parse(templateStr)
+	if err != nil {
+		return nil, err
+	}
+
+	buffer := new(bytes.Buffer)
+
+	if err = templ.Execute(buffer, params); err != nil {
+		return nil, err
+	}
+
+	outputBytes, err := ioutil.ReadAll(buffer)
+	if err != nil {
+		return nil, err
+	}
+	return outputBytes, nil
+}
+
 func main() {
 	flag.Parse()
 	customizations := stack.AWSStackConfig{}
@@ -930,7 +982,7 @@ func main() {
 		panic(err)
 	}
 
-	renderedBuildScript, err := stack.RenderTemplate(modded, config)
+	renderedBuildScript, err := renderTemplate(modded, config)
 	if err != nil {
 		log.Fatalf("Failed to render build script: %v", err)
 	}
