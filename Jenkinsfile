@@ -239,7 +239,7 @@ pipeline {
 											apt-get update
 											}
 											'''
-											funcs.aptInstall(["golang-1.11", "curl", "fuseext2"])
+											funcs.aptInstall(["golang-1.11", "curl", "fuseext2", "lib32stdc++6", "lib32z1", "lib32z1-dev"])
 										}
 										sh '''
 										mountpoint /rw && sudo mount -o remount,noatime /rw || true
