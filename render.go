@@ -237,7 +237,8 @@ set -x
       done
 
       # cleanup any files in tree not part of this revision
-      git clean -dff
+      git clean -ffn
+      git clean -ff
 
       # reset any modifications
       git checkout -- .
@@ -658,6 +659,7 @@ gitcleansource() {
 	if [ -f .git/timestampsums ] ; then
 		echo "has modifications" >&2
 		cat .git/timestampsums >&2
+		git clean -fxdn >&2 || return $?
 		git clean -fxd >&2 || return $?
 		git reset --hard >&2 || return $?
 	else
