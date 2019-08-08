@@ -18,6 +18,158 @@ if (BUILD_TYPE != "") {
   BUILD_TYPE = ALL_BUILD_TYPES
 }
 
+def depsInstall() {
+	sh '''
+	test -f /etc/apt/sources.list.d/backports.list || {
+	echo "deb http://ftp.debian.org/debian stretch-backports main" | sudo tee /etc/apt/sources.list.d/backports.list
+	sudo dpkg --add-architecture i386
+	apt-get update
+	}
+	'''
+	funcs.aptInstall([
+		"golang-1.11",
+		"curl",
+		"fuseext2",
+		"lib32z1",
+		"lighttpd",
+		"python-pexpect",
+		"xvfb",
+		"x11-utils",
+		"bsdiff",
+		"openjdk-8-jre",
+		"openjdk-8-jdk",
+		"binutils",
+		"bison",
+		"bzip2",
+		"cdbs",
+		"curl",
+		"dbus-x11",
+		"dpkg-dev",
+		"elfutils",
+		"devscripts",
+		"fakeroot",
+		"flex",
+		"g++",
+		"git-core",
+		"git-svn",
+		"gperf",
+		"libappindicator3-dev",
+		"libasound2-dev",
+		"libatspi2.0-dev",
+		"libbrlapi-dev",
+		"libbz2-dev",
+		"libcairo2-dev",
+		"libcap-dev",
+		"libc6-dev",
+		"libcups2-dev",
+		"libcurl4-gnutls-dev",
+		"libdrm-dev",
+		"libelf-dev",
+		"libffi-dev",
+		"libgbm-dev",
+		"libglib2.0-dev",
+		"libglu1-mesa-dev",
+		"libgnome-keyring-dev",
+		"libgtk-3-dev",
+		"libkrb5-dev",
+		"libnspr4-dev",
+		"libnss3-dev",
+		"libpam0g-dev",
+		"libpci-dev",
+		"libpulse-dev",
+		"libsctp-dev",
+		"libspeechd-dev",
+		"libsqlite3-dev",
+		"libssl-dev",
+		"libudev-dev",
+		"libwww-perl",
+		"libxslt1-dev",
+		"libxss-dev",
+		"libxt-dev",
+		"libxtst-dev",
+		"locales",
+		"openbox",
+		"p7zip",
+		"patch",
+		"perl",
+		"pkg-config",
+		"python",
+		"python-cherrypy3",
+		"python-crypto",
+		"python-dev",
+		"python-numpy",
+		"python-opencv",
+		"python-openssl",
+		"python-psutil",
+		"python-yaml",
+		"rpm",
+		"ruby",
+		"subversion",
+		"uuid-dev",
+		"wdiff",
+		"x11-utils",
+		"xcompmgr",
+		"xz-utils",
+		"zip",
+		"libbluetooth-dev",
+		"libxkbcommon-dev",
+		"realpath",
+		"libc6-i386",
+		"lib32gcc1",
+		"lib32stdc++6",
+		"libpulse0",
+		"libbz2-1.0",
+		"libappindicator3-1",
+		"libasound2",
+		"libatk1.0-0",
+		"libatspi2.0-0",
+		"libc6",
+		"libcairo2",
+		"libcap2",
+		"libcups2",
+		"libexpat1",
+		"libffi6",
+		"libfontconfig1",
+		"libfreetype6",
+		"libglib2.0-0",
+		"libgnome-keyring0",
+		"libgtk-3-0",
+		"libpam0g",
+		"libpango1.0-0",
+		"libpci3",
+		"libpcre3",
+		"libpixman-1-0",
+		"libspeechd2",
+		"libstdc++6",
+		"libsqlite3-0",
+		"libuuid1",
+		"libwayland-egl1-mesa",
+		"libx11-6",
+		"libx11-xcb1",
+		"libxau6",
+		"libxcb1",
+		"libxcomposite1",
+		"libxcursor1",
+		"libxdamage1",
+		"libxdmcp6",
+		"libxext6",
+		"libxfixes3",
+		"libxi6",
+		"libxinerama1",
+		"libxrandr2",
+		"libxrender1",
+		"libxtst6",
+		"zlib1g",
+		"linux-libc-dev:i386",
+		"libpci3:i386",
+		"libx11-xcb1:i386",
+		"binutils-arm-linux-gnueabihf",
+		"binutils-aarch64-linux-gnu",
+		"binutils-mipsel-linux-gnu",
+		"binutils-mips64el-linux-gnuabi64",
+	])
+}
+
 def runStack(currentBuild, actuallyBuild, stage="") {
 	def onlyReport = true
 	def phase = "description"
@@ -233,13 +385,7 @@ pipeline {
 								timeout(time: 10, unit: 'MINUTES') {
 									retry(2) {
 										script {
-											sh '''
-											test -f /etc/apt/sources.list.d/backports.list || {
-											echo "deb http://ftp.debian.org/debian stretch-backports main" | sudo tee /etc/apt/sources.list.d/backports.list
-											apt-get update
-											}
-											'''
-											funcs.aptInstall(["golang-1.11", "curl", "fuseext2"])
+											depsInstall()
 										}
 										sh '''
 										mountpoint /rw && sudo mount -o remount,noatime /rw || true
